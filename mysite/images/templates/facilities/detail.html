@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>{{ facility.name }}</h2>
+<p class="text-muted">{{ facility.location }} • {{ facility.get_sport_type_display }}</p>
+<p>{{ facility.description }}</p>
+<form class="d-flex gap-2 align-items-center mb-3">
+  <input type="date" class="form-control" name="date" value="{{ selected_date|date:'Y-m-d' }}">
+  <button class="btn btn-primary">Check availability</button>
+</form>
+<h5>Available slots on {{ selected_date }}</h5>
+<ul class="list-group">
+  {% for s,e in slots %}
+    <li class="list-group-item d-flex justify-content-between align-items-center">
+      {{ s|date:"H:i" }}–{{ e|date:"H:i" }}
+      {% if user.is_authenticated %}
+        <a class="btn btn-sm btn-success" href="{% url 'images:book' facility.id %}?start={{ s|date:'Y-m-d\\TH:i' }}&end={{ e|date:'Y-m-d\\TH:i' }}">Book</a>
+      {% else %}
+        <a class="btn btn-sm btn-outline-secondary" href="{% url 'login' %}?next={% url 'images:facilities:detail' facility.id %}">Login to book</a>
+      {% endif %}
+    </li>
+  {% empty %}
+    <li class="list-group-item">No free slots (or too close to start time).</li>
+  {% endfor %}
+</ul>
+{% endblock %}
