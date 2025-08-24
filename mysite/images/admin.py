@@ -4,7 +4,8 @@ from .models import Facility, Booking, Blackout
 @admin.register(Facility)
 class FacilityAdmin(admin.ModelAdmin):
     list_display = ("name", "sport_type", "location", "open_time", "close_time", "base_price")
-    search_fields = ("name", "location", "sport_type")
+    list_filter = ("sport_type",)
+    search_fields = ("name", "location")
 
 @admin.register(Booking)
 class BookingAdmin(admin.ModelAdmin):

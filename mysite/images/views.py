@@ -8,9 +8,11 @@ from django.core.mail import send_mail
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.views.decorators.http import require_POST
+from django.contrib.auth import logout
 
 from .models import Facility, Booking, Blackout
-from .forms import RegisterForm, BookingForm
+from .forms import RegisterForm, BookingForm, UserForm, ProfileForm
 from .services import available_slots
 
 def home(request):
@@ -75,7 +77,7 @@ def book_view(request, facility_id):
                     fail_silently=True,
                 )
                 messages.success(request, "Booking confirmed.")
-                return redirect("images:my_bookings")
+                return redirect("images:booking_confirmed", pk=booking.pk)
             except Exception as e:
                 messages.error(request, str(e))
     else:
@@ -117,3 +119,63 @@ def usage_report_csv(request):
         writer.writerow([facility, day, agg["count"], agg["rev"]])
 
     return resp
+
+@login_required
+def profile_view(request):
+    user = request.user
+    # ensure profile exists (in case signal missed during earlier dev)
+    if not hasattr(user, "profile"):
+        from .models import UserProfile
+        UserProfile.objects.get_or_create(user=user)
+
+    if request.method == "POST":
+        uf = UserForm(request.POST, instance=user)
+        pf = ProfileForm(request.POST, instance=user.profile)
+        if uf.is_valid() and pf.is_valid():
+            uf.save(); pf.save()
+            messages.success(request, "Profile updated.")
+            return redirect("images:profile")
+    else:
+        uf = UserForm(instance=user)
+        pf = ProfileForm(instance=user.profile)
+
+    return render(request, "account/profile.html", {"user_form": uf, "profile_form": pf})
+
+@require_POST
+def logout_post(request):
+    logout(request)
+    return redirect("images:login")
+
+@login_required
+def booking_confirmed(request, pk):
+    booking = get_object_or_404(Booking, pk=pk, user=request.user)
+    return render(request, "bookings/confirmed.html", {"booking": booking})
+
+@login_required
+def modify_booking(request, pk):
+    b = get_object_or_404(Booking, pk=pk, user=request.user, status="confirmed")
+    # enforce 1h rule (same as cancel)
+    if (b.start_dt - timezone.now()) < timedelta(hours=1):
+        messages.error(request, "Modifications must be at least 1 hour in advance.")
+        return redirect("images:my_bookings")
+
+    if request.method == "POST":
+        form = BookingForm(request.POST, instance=b)
+        if form.is_valid():
+            updated = form.save(commit=False)
+            # keep these locked
+            updated.user = b.user
+            updated.facility = b.facility
+            updated.price = b.price
+            try:
+                updated.full_clean()  # will check overlaps, slot length, hours, 1h rule
+                updated.save()
+                messages.success(request, "Booking updated.")
+                return redirect("images:booking_confirmed", pk=b.pk)
+            except Exception as e:
+                messages.error(request, str(e))
+    else:
+        form = BookingForm(instance=b)
+
+    return render(request, "bookings/modify.html", {"booking": b, "form": form})
+

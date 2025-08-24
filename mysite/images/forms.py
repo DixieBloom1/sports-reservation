@@ -1,7 +1,8 @@
 # reservations/forms.py
 from django import forms
 from django.contrib.auth.models import User
-from .models import Booking
+from .models import Booking, UserProfile
+
 
 class RegisterForm(forms.ModelForm):
     password = forms.CharField(widget=forms.PasswordInput)
@@ -17,3 +18,14 @@ class BookingForm(forms.ModelForm):
             "start_dt": forms.DateTimeInput(attrs={"type": "datetime-local"}),
             "end_dt": forms.DateTimeInput(attrs={"type": "datetime-local"}),
         }
+
+class UserForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ["username", "email"]
+
+class ProfileForm(forms.ModelForm):
+    class Meta:
+        model = UserProfile
+        fields = ["phone"]
+        widgets = {"phone": forms.TextInput(attrs={"placeholder": "+385..."})}

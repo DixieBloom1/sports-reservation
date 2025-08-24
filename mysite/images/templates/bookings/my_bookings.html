@@ -2,7 +2,9 @@
 {% block content %}
 <h3>My bookings</h3>
 <table class="table">
-  <thead><tr><th>Facility</th><th>Start</th><th>End</th><th>Status</th><th></th></tr></thead>
+  <thead>
+    <tr><th>Facility</th><th>Start</th><th>End</th><th>Status</th><th></th></tr>
+  </thead>
   <tbody>
   {% for b in bookings %}
     <tr>
@@ -11,9 +13,11 @@
       <td>{{ b.end_dt|date:"Y-m-d H:i" }}</td>
       <td>{{ b.status }}</td>
       <td>
-        {% if b.status == 'confirmed' and b.start_dt|date:"U" > now|date:"U"|add:3600 %}
-          <a class="btn btn-sm btn-outline-danger" href="{% url 'images:cancel_booking' b.id %}">Cancel</a>
+        {% if b.status == 'confirmed' %}
+          <a class="btn btn-sm btn-outline-primary" href="{% url 'images:modify_booking' b.id %}">Modify</a>
+          <a class="btn btn-sm btn-outline-danger ms-1" href="{% url 'images:cancel_booking' b.id %}">Cancel</a>
         {% endif %}
+        <a class="btn btn-sm btn-link ms-2" href="{% url 'images:facility_detail' b.facility.id %}">Book another slot</a>
       </td>
     </tr>
   {% empty %}

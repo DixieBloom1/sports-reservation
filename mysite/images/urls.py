@@ -14,4 +14,9 @@ urlpatterns = [
     path("bookings/", views.my_bookings, name="my_bookings"),
     path("bookings/<int:pk>/cancel/", views.cancel_booking, name="cancel_booking"),
     path("admin/reports/usage.csv", views.usage_report_csv, name="usage_report"),
+    path("profile/", views.profile_view, name="profile"),
+    path("logout/", views.logout_post, name="logout"),
+    path("bookings/<int:pk>/confirmed/", views.booking_confirmed, name="booking_confirmed"),
+    path("bookings/<int:pk>/modify/", views.modify_booking, name="modify_booking"),
 ]
+
