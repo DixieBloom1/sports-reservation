@@ -11,8 +11,8 @@
       <td>{{ b.end_dt|date:"Y-m-d H:i" }}</td>
       <td>{{ b.status }}</td>
       <td>
-        {% if b.status == 'confirmed' and b.cancel_allowed %}
-          <a class="btn btn-sm btn-outline-danger" href="{% url 'images:bookings:cancel' b.id %}">Cancel</a>
+        {% if b.status == 'confirmed' and b.start_dt|date:"U" > now|date:"U"|add:3600 %}
+          <a class="btn btn-sm btn-outline-danger" href="{% url 'images:cancel_booking' b.id %}">Cancel</a>
         {% endif %}
       </td>
     </tr>
