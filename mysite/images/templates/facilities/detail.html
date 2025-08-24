@@ -4,24 +4,110 @@
 <p class="text-muted">{{ facility.location }} • {{ facility.get_sport_type_display }}</p>
 <p>{{ facility.description }}</p>
 
-<form class="d-flex gap-2 align-items-center mb-3">
-  <input type="date" class="form-control" name="date" value="{{ selected_date|date:'Y-m-d' }}">
-  <button class="btn btn-primary">Check availability</button>
+<form class="row gy-2 gx-2 align-items-center mb-3">
+  <div class="col-auto">
+    <input type="date" class="form-control" name="date" value="{{ selected_date|date:'Y-m-d' }}">
+  </div>
+
+  {% if has_courts %}
+    <div class="col-auto">
+      <select class="form-select" name="court">
+        <option value="">— Choose a court —</option>
+        {% for c in courts %}
+          <option value="{{ c.id }}" {% if selected_court and c.id == selected_court.id %}selected{% endif %}>
+            {{ c.name }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+  {% endif %}
+
+  <div class="col-auto">
+    <button class="btn btn-primary">Check</button>
+  </div>
+
+  <div class="col-auto">
+    <button type="button" class="btn btn-outline-warning"
+            data-bs-toggle="modal" data-bs-target="#noticesModal">
+      Notices &amp; maintenance{% if upcoming_blackouts %} ({{ upcoming_blackouts|length }}){% endif %}
+    </button>
+  </div>
 </form>
 
-<h5>Available slots on {{ selected_date }}</h5>
+{% if day_blackouts %}
+  <div class="alert alert-warning" role="alert">
+    Maintenance on this date:
+    <ul class="mb-0">
+      {% for b in day_blackouts %}
+        <li>{{ b.start_dt|date:"H:i" }}–{{ b.end_dt|date:"H:i" }} — {{ b.reason|default:"Maintenance" }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+{% endif %}
+
+<h5 class="mb-2">
+  Available slots on {{ selected_date }}
+  {% if has_courts and selected_court %} — {{ selected_court.name }}{% endif %}
+</h5>
+
 <ul class="list-group">
   {% for s,e in slots %}
     <li class="list-group-item d-flex justify-content-between align-items-center">
       {{ s|date:"H:i" }}–{{ e|date:"H:i" }}
       {% if user.is_authenticated %}
-        <a class="btn btn-sm btn-success" href="{% url 'images:book' facility.id %}?start={{ s|date:'Y-m-d\\TH:i' }}&end={{ e|date:'Y-m-d\\TH:i' }}">Book</a>
+        <a class="btn btn-sm btn-success"
+           href="{% url 'images:book' facility.id %}?start={{ s|date:'Y-m-d\\TH:i' }}&end={{ e|date:'Y-m-d\\TH:i' }}{% if selected_court %}&court={{ selected_court.id }}{% endif %}">
+           Book
+        </a>
       {% else %}
-        <a class="btn btn-sm btn-outline-secondary" href="{% url 'images:login' %}?next={% url 'images:facility_detail' facility.id %}">Login to book</a>
+        <a class="btn btn-sm btn-outline-secondary"
+           href="{% url 'images:login' %}?next={% url 'images:facility_detail' facility.id %}">
+           Login to book
+        </a>
       {% endif %}
     </li>
   {% empty %}
-    <li class="list-group-item">No free slots (or too close to start time).</li>
+    <li class="list-group-item">
+      {% if has_courts and not selected_court %}
+        Choose a court to see availability.
+      {% else %}
+        No free slots (or too close to start time).
+      {% endif %}
+    </li>
   {% endfor %}
 </ul>
+
+{# Notices & maintenance modal #}
+<div class="modal fade" id="noticesModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Notices &amp; maintenance — {{ facility.name }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        {% if upcoming_blackouts %}
+          <ul class="list-group">
+            {% for b in upcoming_blackouts %}
+              <li class="list-group-item">
+                <div class="d-flex justify-content-between">
+                  <strong>{{ b.reason|default:"Maintenance" }}</strong>
+                  <span class="badge text-bg-warning">Scheduled</span>
+                </div>
+                <div class="small text-muted mt-1">
+                  {{ b.start_dt|date:"Y-m-d H:i" }} – {{ b.end_dt|date:"Y-m-d H:i" }}
+                </div>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="mb-0">No upcoming maintenance or notices.</p>
+        {% endif %}
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}
