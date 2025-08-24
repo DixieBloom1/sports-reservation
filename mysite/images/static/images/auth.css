@@ -1,0 +1,53 @@
+/* Auth pages look */
+body.auth {
+  min-height: 100vh;
+  background:
+    radial-gradient(1200px 600px at 80% -10%, rgba(99,102,241,.18), transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, rgba(16,185,129,.18), transparent 60%),
+    linear-gradient(180deg, #0f172a 0%, #111827 100%);
+}
+
+/* Hide navbar on auth pages (optional) */
+.auth .navbar { display: none; }
+
+/* Centering and card */
+.auth-wrapper {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+}
+.auth-card {
+  width: 100%;
+  max-width: 440px;
+  background: rgba(255,255,255,0.06);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 1rem;
+  box-shadow: 0 10px 35px rgba(0,0,0,.35);
+  color: #e5e7eb;
+}
+
+/* Form fields inside the auth card */
+.auth-card .form-control,
+.auth-card .form-select {
+  background: rgba(17,24,39,.55);
+  border: 1px solid rgba(255,255,255,.12);
+  color: #e5e7eb;
+}
+.auth-card .form-control::placeholder { color: #9ca3af; }
+.auth-card .form-control:focus {
+  border-color: #818cf8;
+  box-shadow: 0 0 0 .2rem rgba(129,140,248,.25);
+  color: #fff;
+  background: rgba(17,24,39,.75);
+}
+
+/* Small brand chip */
+.brand-badge {
+  display: inline-flex; align-items: center; gap:.5rem;
+  padding:.5rem .75rem; border-radius: 999px;
+  background: rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.12);
+  color:#e5e7eb; font-size:.9rem;
+}

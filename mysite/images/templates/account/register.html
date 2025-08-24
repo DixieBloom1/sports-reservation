@@ -1,9 +1,45 @@
 {% extends "base.html" %}
+{% block body_class %}auth{% endblock %}
 {% block content %}
-<h3>Register</h3>
-<form method="post" class="mt-3">
-  {% csrf_token %}
-  {{ form.as_p }}
-  <button class="btn btn-success">Create account</button>
-</form>
+<div class="auth-wrapper">
+  <div class="auth-card p-4 p-md-5">
+    <div class="mb-4 text-center">
+      <span class="brand-badge"><i class="bi bi-stars"></i> Join us</span>
+      <h2 class="mt-3 mb-1">Create your account</h2>
+      <p class="text-secondary mb-0">Book facilities in a few clicks</p>
+    </div>
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger py-2">{{ form.non_field_errors }}</div>
+      {% endif %}
+
+      <div class="mb-3">
+        <label class="form-label">Username</label>
+        {{ form.username }}
+        {% if form.username.errors %}<div class="text-danger small">{{ form.username.errors }}</div>{% endif %}
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Email</label>
+        {{ form.email }}
+        {% if form.email.errors %}<div class="text-danger small">{{ form.email.errors }}</div>{% endif %}
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Password</label>
+        {{ form.password }}
+        {% if form.password.errors %}<div class="text-danger small">{{ form.password.errors }}</div>{% endif %}
+      </div>
+
+      <button class="btn btn-success btn-lg w-100">Create account</button>
+    </form>
+
+    <div class="text-center mt-3">
+      <span class="text-secondary">Already have an account?</span>
+      <a class="link-light" href="{% url 'images:login' %}">Sign in</a>
+    </div>
+  </div>
+</div>
 {% endblock %}
