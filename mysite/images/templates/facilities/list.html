@@ -4,19 +4,16 @@
 
 <form class="row gy-2 gx-2 align-items-center mb-3">
   <div class="col-auto">
-    <input class="form-control" name="q" placeholder="Search name/location" value="{{ q }}">
+     <input type="text" class="form-control" name="q" value="{{ q }}" placeholder="Search by name or location">
   </div>
-
   <div class="col-auto">
-    <select class="form-select" name="sport">
-        <option value="">All sports</option>
-    {% for label in SPORT_OPTIONS %}
-        <option value="{{ label }}" {% if sport == label %}selected{% endif %}>{{ label }}</option>
-    {% endfor %}
-</select>
-
+    <select name="sport" class="form-select">
+      <option value="">All sports</option>
+      {% for s in SPORT_OPTIONS %}
+        <option value="{{ s }}" {% if s == sport %}selected{% endif %}>{{ s }}</option>
+      {% endfor %}
+    </select>
   </div>
-
   <div class="col-auto"><button class="btn btn-primary">Search</button></div>
 </form>
 

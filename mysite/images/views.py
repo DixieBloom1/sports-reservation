@@ -25,33 +25,40 @@ from .services import available_slots, available_slots_court
 def home(request):
     q = request.GET.get("q", "") or ""
     sport = request.GET.get("sport", "") or ""
+
     facilities = Facility.objects.all()
     if q:
         facilities = facilities.filter(Q(name__icontains=q) | Q(location__icontains=q))
 
-    # build options: default labels + dynamic Sport names
-    default_labels = [label for _, label in Facility.SPORT_CHOICES]
-    dynamic = list(Sport.objects.values_list("name", flat=True))
+    # Build dropdown from live data only:
+    # - facility.sport_text on existing facilities
+    # - court.sport.name for courts that exist
+    typed_sports_qs = Facility.objects.exclude(sport_text="") \
+                                      .values_list("sport_text", flat=True) \
+                                      .distinct()
+    court_sports_qs = Court.objects.filter(sport__isnull=False) \
+                                   .values_list("sport__name", flat=True) \
+                                   .distinct()
+
     seen, SPORT_OPTIONS = set(), []
-    for name in default_labels + dynamic:
+    for name in list(typed_sports_qs) + list(court_sports_qs):
+        if not name:
+            continue
         k = name.casefold()
         if k not in seen:
             seen.add(k)
             SPORT_OPTIONS.append(name)
-    SPORT_OPTIONS.sort()
+    SPORT_OPTIONS.sort(key=str.casefold)
 
     if sport:
-        # map label -> code for defaults
-        label_to_code = {label: code for code, label in Facility.SPORT_CHOICES}
-        code = label_to_code.get(sport)
         facilities = facilities.filter(
-            Q(sport_type=code) | Q(courts__sport__name__iexact=sport)
+            Q(sport_text__iexact=sport) |
+            Q(courts__sport__name__iexact=sport)
         ).distinct()
 
     return render(request, "facilities/list.html", {
         "facilities": facilities, "q": q, "sport": sport, "SPORT_OPTIONS": SPORT_OPTIONS
     })
-
 def register_view(request):
     """Simple user registration."""
     if request.method == "POST":

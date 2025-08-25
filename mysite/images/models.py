@@ -15,26 +15,29 @@ class Facility(models.Model):
         ("swimming", "Swimming"),
         ("gym", "Gym"),
     ]
+
     owner = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
-        related_name="owned_facilities", null=True, blank=True
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="owned_facilities",
+        null=True,
+        blank=True,
     )
 
-    @property
-    def display_sport(self) -> str:
-        # Prefer first court’s sport if present
-        court = self.courts.filter(sport__isnull=False).select_related("sport").first()
-        if court and court.sport and court.sport.name:
-            return court.sport.name
-
-        # Fall back to legacy sport_type choices if you still have them
-        try:
-            return dict(self.SPORT_CHOICES).get(self.sport_type, "")
-        except Exception:
-            return ""
-
     name = models.CharField(max_length=120, unique=True)
-    sport_type = models.CharField(max_length=30, choices=SPORT_CHOICES)
+
+    # NEW: free-text sport users/providers type in
+    sport_text = models.CharField(max_length=60, blank=True, db_index=True)
+
+    # LEGACY: keep but make optional (so existing rows remain valid)
+    sport_type = models.CharField(
+        max_length=30,
+        choices=SPORT_CHOICES,
+        blank=True,
+        null=True,
+        help_text="Legacy field for old facilities. New entries should use sport_text.",
+    )
+
     location = models.CharField(max_length=200)
     description = models.TextField(blank=True)
     image = models.ImageField(upload_to="facility_images/", blank=True, null=True)
@@ -42,7 +45,23 @@ class Facility(models.Model):
     open_time = models.TimeField(default=dtime(8, 0))
     close_time = models.TimeField(default=dtime(22, 0))
     base_price = models.DecimalField(max_digits=8, decimal_places=2, default=0)
-    def __str__(self): return self.name
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def display_sport(self) -> str:
+        court = self.courts.filter(sport__isnull=False).select_related("sport").first()
+        if court and court.sport and court.sport.name:
+            return court.sport.name
+
+        if self.sport_text:
+            return self.sport_text
+
+        if self.sport_type:
+            return dict(self.SPORT_CHOICES).get(self.sport_type, "")
+
+        return ""
 
 class Sport(models.Model):
     """Dynamic sports added by providers when creating courts."""

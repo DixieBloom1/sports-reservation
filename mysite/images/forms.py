@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.models import User
-from .models import Booking, UserProfile, Court, Facility  # make sure UserProfile exists in models.py
+from .models import Booking, UserProfile, Court, Facility, Sport  # make sure UserProfile exists in models.py
 
 class LoginForm(AuthenticationForm):
     def __init__(self, *args, **kwargs):
@@ -89,27 +89,24 @@ class ProviderRegisterForm(forms.Form):
     num_courts = forms.IntegerField(min_value=0, initial=1, widget=forms.NumberInput(attrs={"class":"form-control"}))
 
 class FacilityForm(forms.ModelForm):
+
     sport_name = forms.CharField(
-        label="Sport type",
+        label="Sport",
+        max_length=60,
         required=False,
-        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g. Padel"}),
-        help_text="Type any sport (free text).",
+        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g. Padel"})
     )
 
     class Meta:
         model = Facility
         fields = [
-            "name",
-            "location",
-            "description",
-            "slot_length_minutes",
-            "open_time",
-            "close_time",
-            "base_price",
-            "image",
+            "name", "sport_name", "location", "description",
+            "slot_length_minutes", "open_time", "close_time",
+            "base_price", "image",
         ]
         widgets = {
             "name": forms.TextInput(attrs={"class": "form-control"}),
+            "sport_name": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g. Padel"}),
             "location": forms.TextInput(attrs={"class": "form-control"}),
             "description": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
             "slot_length_minutes": forms.NumberInput(attrs={"class": "form-control"}),
@@ -119,19 +116,24 @@ class FacilityForm(forms.ModelForm):
             "image": forms.ClearableFileInput(attrs={"class": "form-control"}),
         }
 
+    def clean_sport_text(self):
+        return " ".join((self.cleaned_data.get("sport_name") or "").split())
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.order_fields([
-            "name",
-            "sport_name",
-            "location",
-            "description",
-            "slot_length_minutes",
-            "open_time",
-            "close_time",
-            "base_price",
-            "image",
-        ])
+        # Pre-fill sport_name from instance.sport_text when editing
+        if getattr(self.instance, "sport_text", ""):
+            self.fields["sport_name"].initial = self.instance.sport_text
+
+    def save(self, commit=True):
+        obj = super().save(commit=False)
+        # Map the virtual field to the real model field
+        obj.sport_text = (self.cleaned_data.get("sport_name") or "").strip()
+        if commit:
+            obj.save()
+            self.save_m2m()
+        return obj
+
 class CourtForm(forms.ModelForm):
     sport_name = forms.CharField(
         max_length=50, label="Sport",
