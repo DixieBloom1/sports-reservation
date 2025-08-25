@@ -1,41 +1,44 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-center">
-  <h3>My facilities</h3>
-  <a class="btn btn-primary" href="{% url 'images:provider_add_facility' %}">Add facility</a>
-</div>
-
-<div class="row mt-3">
-  {% for f in facilities %}
-    <div class="col-md-6 mb-3">
-      <div class="card h-100">
-        <div class="card-body">
-          <h5 class="card-title">{{ f.name }}</h5>
-
-          <p class="small text-muted">
-            {{ f.location }}
-            {% if f.display_sport %} • {{ f.display_sport }}{% endif %}
-          </p>
-
-          <div class="d-flex gap-2">
-            <a class="btn btn-sm btn-outline-secondary" href="{% url 'images:provider_manage_courts' f.id %}">
-              Manage courts
-            </a>
-              <a class="btn btn-sm btn-outline-secondary"
-                href="{% url 'images:provider_manage_blackouts' f.id %}">Notices / Blackouts</a>
-            <a class="btn btn-sm btn-outline-primary" href="{% url 'images:provider_edit_facility' f.id %}">
-              Edit
-            </a>
-            <form action="{% url 'images:provider_delete_facility' f.id %}" method="post" onsubmit="return confirm('Delete this facility? This cannot be undone.');">
-              {% csrf_token %}
-              <button class="btn btn-sm btn-outline-danger">Delete</button>
-            </form>
-          </div>
-        </div>
-      </div>
+    <div class="d-flex justify-content-between align-items-center">
+        <h3>My facilities</h3>
+        <a class="btn btn-primary" href="{% url 'images:provider_add_facility' %}">Add facility</a>
     </div>
-  {% empty %}
-    <p>No facilities yet.</p>
-  {% endfor %}
-</div>
+
+    <div class="row mt-3">
+        {% for f in facilities %}
+            <div class="col-md-6 mb-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ f.name }}</h5>
+
+                        <p class="small text-muted">
+                            {{ f.location }}
+                            {% if f.display_sport %} • {{ f.display_sport }}{% endif %}
+                        </p>
+
+                        <div class="d-flex gap-2">
+                            <a class="btn btn-sm btn-outline-secondary"
+                               href="{% url 'images:provider_manage_courts' f.id %}">
+                                Manage courts
+                            </a>
+                            <a class="btn btn-sm btn-outline-secondary"
+                               href="{% url 'images:provider_manage_blackouts' f.id %}">Notices / Blackouts</a>
+                            <a class="btn btn-sm btn-outline-primary"
+                               href="{% url 'images:provider_edit_facility' f.id %}">
+                                Edit
+                            </a>
+                            <form action="{% url 'images:provider_delete_facility' f.id %}" method="post"
+                                  onsubmit="return confirm('Delete this facility? This cannot be undone.');">
+                                {% csrf_token %}
+                                <button class="btn btn-sm btn-outline-danger">Delete</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% empty %}
+            <p>No facilities yet.</p>
+        {% endfor %}
+    </div>
 {% endblock %}

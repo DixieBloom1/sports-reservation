@@ -1,39 +1,39 @@
 <div class="modal-body">
-  <h6 class="mb-2">Upcoming</h6>
-  {% if upcoming_blackouts %}
-    <ul class="list-group mb-3">
-      {% for b in upcoming_blackouts %}
-        <li class="list-group-item">
-          <div class="d-flex justify-content-between">
-            <strong>{{ b.note|default:b.reason|default:"Maintenance" }}</strong>
-            <span class="badge text-bg-warning">Scheduled</span>
-          </div>
-          <div class="small text-muted mt-1">
-            {{ b.start_dt|date:"Y-m-d H:i" }} – {{ b.end_dt|date:"Y-m-d H:i" }}
-          </div>
-        </li>
-      {% endfor %}
-    </ul>
-  {% else %}
-    <p class="text-muted">No upcoming maintenance or notices.</p>
-  {% endif %}
+    <h6 class="mb-2">Upcoming</h6>
+    {% if upcoming_blackouts %}
+        <ul class="list-group mb-3">
+            {% for b in upcoming_blackouts %}
+                <li class="list-group-item">
+                    <div class="d-flex justify-content-between">
+                        <strong>{{ b.note|default:b.reason|default:"Maintenance" }}</strong>
+                        <span class="badge text-bg-warning">Scheduled</span>
+                    </div>
+                    <div class="small text-muted mt-1">
+                        {{ b.start_dt|date:"Y-m-d H:i" }} – {{ b.end_dt|date:"Y-m-d H:i" }}
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="text-muted">No upcoming maintenance or notices.</p>
+    {% endif %}
 
-  <h6 class="mb-2">Past</h6>
-  {% if past_blackouts %}
-    <ul class="list-group">
-      {% for b in past_blackouts %}
-        <li class="list-group-item">
-          <div class="d-flex justify-content-between">
-            <strong>{{ b.note|default:b.reason|default:"Maintenance" }}</strong>
-            <span class="badge text-bg-secondary">Past</span>
-          </div>
-          <div class="small text-muted mt-1">
-            {{ b.start_dt|date:"Y-m-d H:i" }} – {{ b.end_dt|date:"Y-m-d H:i" }}
-          </div>
-        </li>
-      {% endfor %}
-    </ul>
-  {% else %}
-    <p class="text-muted mb-0">No past notices recorded.</p>
-  {% endif %}
+    <h6 class="mb-2">Past</h6>
+    {% if past_blackouts %}
+        <ul class="list-group">
+            {% for b in past_blackouts %}
+                <li class="list-group-item">
+                    <div class="d-flex justify-content-between">
+                        <strong>{{ b.note|default:b.reason|default:"Maintenance" }}</strong>
+                        <span class="badge text-bg-secondary">Past</span>
+                    </div>
+                    <div class="small text-muted mt-1">
+                        {{ b.start_dt|date:"Y-m-d H:i" }} – {{ b.end_dt|date:"Y-m-d H:i" }}
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="text-muted mb-0">No past notices recorded.</p>
+    {% endif %}
 </div>

@@ -8,7 +8,6 @@ from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import User
-from django.core.exceptions import ValidationError
 from django.core.mail import send_mail
 from django.db import transaction, IntegrityError
 from django.db.models import Q
@@ -17,29 +16,45 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST, require_http_methods
 
-from .models import Facility, Booking, Blackout, UserProfile, Court, FacilitySignupRequest, Sport
-from .forms import RegisterForm, BookingForm, UserForm, ProfileForm, ProviderRegisterForm, FacilityForm, CourtForm, \
-    BlackoutForm
+from .models import (
+    Facility,
+    Booking,
+    Blackout,
+    UserProfile,
+    Court,
+    FacilitySignupRequest,
+    Sport,
+)
+from .forms import (
+    RegisterForm,
+    BookingForm,
+    UserForm,
+    ProfileForm,
+    ProviderRegisterForm,
+    FacilityForm,
+    CourtForm,
+    BlackoutForm,
+)
 from .services import available_slots, available_slots_court
 
 
 def home(request):
     q = request.GET.get("q", "") or ""
     sport = request.GET.get("sport", "") or ""
-
     facilities = Facility.objects.all()
     if q:
         facilities = facilities.filter(Q(name__icontains=q) | Q(location__icontains=q))
 
-    # Build dropdown from live data only:
-    # - facility.sport_text on existing facilities
-    # - court.sport.name for courts that exist
-    typed_sports_qs = Facility.objects.exclude(sport_text="") \
-                                      .values_list("sport_text", flat=True) \
-                                      .distinct()
-    court_sports_qs = Court.objects.filter(sport__isnull=False) \
-                                   .values_list("sport__name", flat=True) \
-                                   .distinct()
+    typed_sports_qs = (
+        Facility.objects.exclude(sport_text="")
+        .values_list("sport_text", flat=True)
+        .distinct()
+    )
+    court_sports_qs = (
+        Court.objects.filter(sport__isnull=False)
+        .values_list("sport__name", flat=True)
+        .distinct()
+    )
 
     seen, SPORT_OPTIONS = set(), []
     for name in list(typed_sports_qs) + list(court_sports_qs):
@@ -53,15 +68,17 @@ def home(request):
 
     if sport:
         facilities = facilities.filter(
-            Q(sport_text__iexact=sport) |
-            Q(courts__sport__name__iexact=sport)
+            Q(sport_text__iexact=sport) | Q(courts__sport__name__iexact=sport)
         ).distinct()
 
-    return render(request, "facilities/list.html", {
-        "facilities": facilities, "q": q, "sport": sport, "SPORT_OPTIONS": SPORT_OPTIONS
-    })
+    return render(
+        request,
+        "facilities/list.html",
+        {"facilities": facilities, "q": q, "sport": sport, "SPORT_OPTIONS": SPORT_OPTIONS},
+    )
+
+
 def register_view(request):
-    """Simple user registration."""
     if request.method == "POST":
         form = RegisterForm(request.POST)
         if form.is_valid():
@@ -82,9 +99,9 @@ def my_bookings(request):
     bookings = Booking.objects.filter(user=request.user).order_by("-start_dt")
     return render(request, "bookings/my_bookings.html", {"bookings": bookings})
 
+
 @login_required
 def cancel_booking(request, pk):
-    """Cancel a booking if ≥ 1 hour in advance."""
     b = get_object_or_404(Booking, pk=pk, user=request.user)
     if (b.start_dt - timezone.now()) < timedelta(hours=1):
         messages.error(request, "Cancellations must be at least 1 hour in advance.")
@@ -104,7 +121,6 @@ def cancel_booking(request, pk):
 
 @staff_member_required
 def usage_report_csv(request):
-    """CSV report: bookings per facility/day + revenue."""
     resp = HttpResponse(content_type="text/csv")
     resp["Content-Disposition"] = 'attachment; filename="usage.csv"'
     writer = csv.writer(resp)
@@ -125,9 +141,7 @@ def usage_report_csv(request):
 
 @login_required
 def profile_view(request):
-    """Edit username/email/phone."""
     user = request.user
-    # ensure profile exists (in case signals didn't run earlier during dev)
     UserProfile.objects.get_or_create(user=user)
 
     if request.method == "POST":
@@ -147,36 +161,37 @@ def profile_view(request):
 
 @require_POST
 def logout_post(request):
-    """POST-only logout for CSRF protection."""
     logout(request)
     return redirect("images:login")
 
 
 @login_required
 def booking_confirmed(request, pk):
-    """Simple confirmation page after booking/modify."""
     booking = get_object_or_404(Booking, pk=pk, user=request.user)
     return render(request, "bookings/confirmed.html", {"booking": booking})
+
 
 def facility_detail(request, pk):
     f = get_object_or_404(Facility, pk=pk)
     selected_date_str = request.GET.get("date")
-    selected_date = datetime.strptime(selected_date_str, "%Y-%m-%d").date() if selected_date_str else date.today()
+    selected_date = (
+        datetime.strptime(selected_date_str, "%Y-%m-%d").date()
+        if selected_date_str
+        else date.today()
+    )
 
     courts = f.courts.filter(is_active=True).order_by("name")
     has_courts = courts.exists()
-
     selected_court = None
     slots = []
 
-    # NEW: notices context
     now = timezone.now()
-    upcoming_blackouts = Blackout.objects.filter(
-        facility=f, end_dt__gte=now
-    ).order_by("start_dt")[:20]
-    past_blackouts = Blackout.objects.filter(
-        facility=f, end_dt__lt=now
-    ).order_by("-start_dt")[:20]
+    upcoming_blackouts = (
+        Blackout.objects.filter(facility=f, end_dt__gte=now).order_by("start_dt")[:20]
+    )
+    past_blackouts = (
+        Blackout.objects.filter(facility=f, end_dt__lt=now).order_by("-start_dt")[:20]
+    )
     day_blackouts = Blackout.objects.filter(
         facility=f, start_dt__date__lte=selected_date, end_dt__date__gte=selected_date
     ).order_by("start_dt")
@@ -187,24 +202,27 @@ def facility_detail(request, pk):
             selected_court = get_object_or_404(Court, pk=selected_court_id, facility=f)
             slots = available_slots_court(selected_court, selected_date)
         else:
-            # User clicked "Check" without choosing a court -> show a message
-            if "date" in request.GET:  # indicates the form was submitted
+            if "date" in request.GET:
                 messages.warning(request, "Choose a court to see availability.")
     else:
-        # No courts: show facility-level availability
         slots = available_slots(f, selected_date)
 
-    return render(request, "facilities/detail.html", {
-        "facility": f,
-        "courts": courts,
-        "has_courts": has_courts,
-        "selected_court": selected_court,
-        "slots": slots,
-        "selected_date": selected_date,
-        "past_blackouts": past_blackouts,
-        "upcoming_blackouts": upcoming_blackouts,
-        "day_blackouts": day_blackouts,
-    })
+    return render(
+        request,
+        "facilities/detail.html",
+        {
+            "facility": f,
+            "courts": courts,
+            "has_courts": has_courts,
+            "selected_court": selected_court,
+            "slots": slots,
+            "selected_date": selected_date,
+            "past_blackouts": past_blackouts,
+            "upcoming_blackouts": upcoming_blackouts,
+            "day_blackouts": day_blackouts,
+        },
+    )
+
 
 def provider_register_view(request):
     if request.method == "POST":
@@ -214,7 +232,7 @@ def provider_register_view(request):
                 user = User.objects.create(
                     username=form.cleaned_data["username"],
                     email=form.cleaned_data["email"],
-                    is_active=False,  # cannot login yet
+                    is_active=False,
                     password=make_password(form.cleaned_data["password"]),
                 )
                 user.profile.role = "provider"
@@ -224,54 +242,52 @@ def provider_register_view(request):
                 FacilitySignupRequest.objects.create(
                     user=user,
                     facility_name=form.cleaned_data["facility_name"],
-                    offered_sports_text=form.cleaned_data["offered_sports_text"],  # free text for admin info
+                    offered_sports_text=form.cleaned_data["offered_sports_text"],
                     location=form.cleaned_data["location"],
                     description=form.cleaned_data.get("description", ""),
                     open_time=form.cleaned_data["open_time"],
                     close_time=form.cleaned_data["close_time"],
                     num_courts=form.cleaned_data["num_courts"],
                 )
-            messages.success(request, "Submitted! Admin must approve your account before you can sign in.")
+            messages.success(
+                request,
+                "Submitted! Admin must approve your account before you can sign in.",
+            )
             return redirect("images:login")
     else:
         form = ProviderRegisterForm()
     return render(request, "account/provider_register.html", {"form": form})
 
+
 @staff_member_required
 def facility_requests_list(request):
-    pending = (FacilitySignupRequest.objects
-               .filter(status="pending")
-               .select_related("user")
-               .order_by("created_at"))
+    pending = (
+        FacilitySignupRequest.objects.filter(status="pending")
+        .select_related("user")
+        .order_by("created_at")
+    )
     return render(request, "admin_facility/requests.html", {"pending": pending})
-
 
 
 @staff_member_required
 @require_POST
 def facility_request_approve(request, pk):
-    """Approve a provider request: activate the user and mark request approved.
-    No Facility is created here; providers must add facilities themselves."""
     req = get_object_or_404(FacilitySignupRequest, pk=pk, status="pending")
-
     with transaction.atomic():
         user = req.user
         user.is_active = True
         user.save()
-
         req.status = "approved"
         req.save()
-
     messages.success(
-        request,
-        f"Approved '{user.username}'. They can now sign in and add their facilities."
+        request, f"Approved '{user.username}'. They can now sign in and add their facilities."
     )
     return redirect("facility_requests")
+
 
 @staff_member_required
 @require_POST
 def facility_request_deny(request, pk):
-    """Deny a request: delete request + user (as if it never existed)."""
     req = get_object_or_404(FacilitySignupRequest, pk=pk, status="pending")
     username = req.user.username
     with transaction.atomic():
@@ -281,15 +297,17 @@ def facility_request_deny(request, pk):
     messages.success(request, f"Denied and removed '{username}'.")
     return redirect("facility_requests")
 
+
 @login_required
 def provider_facilities(request):
     if request.user.profile.role != "provider":
         messages.error(request, "Only providers can access this page.")
         return redirect("images:facilities_list")
-    facilities = (Facility.objects
-                  .filter(owner=request.user)
-                  .prefetch_related("courts__sport"))
+    facilities = Facility.objects.filter(owner=request.user).prefetch_related(
+        "courts__sport"
+    )
     return render(request, "provider/facilities.html", {"facilities": facilities})
+
 
 @login_required
 def provider_add_facility(request):
@@ -302,10 +320,8 @@ def provider_add_facility(request):
         if form.is_valid():
             f = form.save(commit=False)
             f.owner = request.user
-            # DO NOT set f.sport_type here (we’re not using the choices field)
             f.save()
 
-            # Free-text sport -> ensure it exists in Sport table
             sport_name = (form.cleaned_data.get("sport_name") or "").strip()
             if sport_name:
                 sport = Sport.objects.filter(name__iexact=sport_name).first()
@@ -321,12 +337,12 @@ def provider_add_facility(request):
 
             messages.success(request, "Facility created.")
             return redirect("images:provider_facilities")
-        else:
-            messages.error(request, "Please correct the errors below.")
+        messages.error(request, "Please correct the errors below.")
     else:
         form = FacilityForm()
 
     return render(request, "provider/add_facility.html", {"form": form})
+
 
 @login_required
 def provider_manage_courts(request, facility_id):
@@ -336,10 +352,8 @@ def provider_manage_courts(request, facility_id):
     if request.method == "POST":
         form = CourtForm(request.POST)
         form.instance.facility = f
-
         if form.is_valid():
             form.instance.name = form.cleaned_data["name"].strip()
-
             if f.courts.filter(name__iexact=form.instance.name).exists():
                 form.add_error("name", "A court with this name already exists for this facility.")
             else:
@@ -352,33 +366,43 @@ def provider_manage_courts(request, facility_id):
     else:
         form = CourtForm()
 
-    return render(request, "provider/manage_courts.html", {"facility": f, "courts": courts, "form": form})
+    return render(
+        request,
+        "provider/manage_courts.html",
+        {"facility": f, "courts": courts, "form": form},
+    )
+
+
 @login_required
 def provider_bookings(request):
     if request.user.profile.role != "provider":
         messages.error(request, "Only providers can access this page.")
         return redirect("images:facilities_list")
-    bookings = Booking.objects.filter(facility__owner=request.user).select_related("facility", "court", "user").order_by("-start_dt")
+    bookings = (
+        Booking.objects.filter(facility__owner=request.user)
+        .select_related("facility", "court", "user")
+        .order_by("-start_dt")
+    )
     return render(request, "provider/bookings.html", {"bookings": bookings})
+
 
 def _back_to_facility(facility):
     try:
-        return redirect("images:facility_detail", pk=facility.id)  # use pk as your view expects
+        return redirect("images:facility_detail", pk=facility.id)
     except Exception:
         return redirect("images:facilities_list")
+
 
 @require_http_methods(["GET", "POST"])
 @login_required
 def book_view(request, facility_id):
     facility = get_object_or_404(Facility, pk=facility_id)
 
-    # court (optional)
     court_id = request.GET.get("court") or request.POST.get("court")
     court = get_object_or_404(Court, pk=court_id, facility=facility) if court_id else None
 
-    # start/end required
     start_str = request.GET.get("start") if request.method == "GET" else request.POST.get("start")
-    end_str   = request.GET.get("end")   if request.method == "GET" else request.POST.get("end")
+    end_str = request.GET.get("end") if request.method == "GET" else request.POST.get("end")
     if not start_str or not end_str:
         messages.error(request, "Missing start or end time.")
         return _back_to_facility(facility)
@@ -386,8 +410,10 @@ def book_view(request, facility_id):
     try:
         start = datetime.fromisoformat(start_str)
         end = datetime.fromisoformat(end_str)
-        if timezone.is_naive(start): start = timezone.make_aware(start, timezone.get_current_timezone())
-        if timezone.is_naive(end):   end   = timezone.make_aware(end,   timezone.get_current_timezone())
+        if timezone.is_naive(start):
+            start = timezone.make_aware(start, timezone.get_current_timezone())
+        if timezone.is_naive(end):
+            end = timezone.make_aware(end, timezone.get_current_timezone())
     except ValueError:
         messages.error(request, "Invalid date/time format.")
         return _back_to_facility(facility)
@@ -396,23 +422,20 @@ def book_view(request, facility_id):
         messages.error(request, "Start must be before end.")
         return _back_to_facility(facility)
 
-    # block out times covered by notices/maintenance
     if Blackout.objects.filter(facility=facility, start_dt__lt=end, end_dt__gt=start).exists():
         messages.error(request, "That time is unavailable due to a posted notice/blackout.")
         return _back_to_facility(facility)
 
     now = timezone.now()
-    upcoming_blackouts = Blackout.objects.filter(
-        facility=facility, end_dt__gte=now
-    ).order_by("start_dt")[:20]
-    past_blackouts = Blackout.objects.filter(
-        facility=facility, end_dt__lt=now
-    ).order_by("-start_dt")[:20]
+    upcoming_blackouts = (
+        Blackout.objects.filter(facility=facility, end_dt__gte=now).order_by("start_dt")[:20]
+    )
+    past_blackouts = (
+        Blackout.objects.filter(facility=facility, end_dt__lt=now).order_by("-start_dt")[:20]
+    )
     selected_day = start.date()
     day_blackouts = Blackout.objects.filter(
-        facility=facility,
-        start_dt__date__lte=selected_day,
-        end_dt__date__gte=selected_day,
+        facility=facility, start_dt__date__lte=selected_day, end_dt__date__gte=selected_day
     ).order_by("start_dt")
 
     if request.method == "GET":
@@ -430,7 +453,6 @@ def book_view(request, facility_id):
             },
         )
 
-    # POST: try to create
     clash_qs = Booking.objects.filter(
         facility=facility,
         start_dt__lt=end,
@@ -448,7 +470,6 @@ def book_view(request, facility_id):
         user=request.user,
         start_dt=start,
         end_dt=end,
-        # status uses model default
     )
     messages.success(request, "Booking created.")
     return redirect("images:my_bookings")
@@ -463,7 +484,6 @@ def modify_booking(request, pk):
 
     if request.method == "POST":
         form = BookingForm(request.POST, instance=b, facility=b.facility)
-        # lock relationships
         form.instance.user = b.user
         form.instance.facility = b.facility
         form.instance.price = b.price
@@ -473,16 +493,15 @@ def modify_booking(request, pk):
             updated.save()
             messages.success(request, "Booking updated.")
             return redirect("images:booking_confirmed", pk=b.pk)
-        else:
-            messages.error(request, "Please correct the errors below.")
+        messages.error(request, "Please correct the errors below.")
     else:
         form = BookingForm(instance=b, facility=b.facility)
 
     return render(request, "bookings/modify.html", {"booking": b, "form": form})
 
+
 @login_required
 def provider_edit_facility(request, facility_id):
-    """Provider can edit only their own facility."""
     if request.user.profile.role != "provider":
         messages.error(request, "Only providers can access this page.")
         return redirect("images:facilities_list")
@@ -495,43 +514,42 @@ def provider_edit_facility(request, facility_id):
             form.save()
             messages.success(request, "Facility updated.")
             return redirect("images:provider_facilities")
-        else:
-            messages.error(request, "Please fix the errors below.")
+        messages.error(request, "Please fix the errors below.")
     else:
         form = FacilityForm(instance=facility)
 
-    return render(request, "provider/edit_facility.html", {"form": form, "facility": facility})
+    return render(
+        request, "provider/edit_facility.html", {"form": form, "facility": facility}
+    )
 
 
-# DELETE
 @login_required
 @require_POST
 def provider_delete_facility(request, facility_id):
-    """Provider deletes their facility (block if future confirmed bookings exist)."""
     if request.user.profile.role != "provider":
         messages.error(request, "Only providers can access this page.")
         return redirect("images:facilities_list")
 
     facility = get_object_or_404(Facility, id=facility_id, owner=request.user)
 
-    # Block deletion if there are future confirmed bookings
     has_future_bookings = Booking.objects.filter(
-        facility=facility,
-        status="confirmed",
-        start_dt__gte=timezone.now(),
+        facility=facility, status="confirmed", start_dt__gte=timezone.now()
     ).exists()
     if has_future_bookings:
-        messages.error(request, "You cannot delete a facility with future confirmed bookings.")
+        messages.error(
+            request, "You cannot delete a facility with future confirmed bookings."
+        )
         return redirect("images:provider_facilities")
 
     facility.delete()
     messages.success(request, "Facility deleted.")
     return redirect("images:provider_facilities")
 
+
 @login_required
 def provider_manage_blackouts(request, facility_id):
     f = get_object_or_404(Facility, id=facility_id, owner=request.user)
-    blackouts = f.blackouts.all()  # thanks to related_name
+    blackouts = f.blackouts.all()
 
     if request.method == "POST":
         form = BlackoutForm(request.POST)
@@ -547,11 +565,12 @@ def provider_manage_blackouts(request, facility_id):
     else:
         form = BlackoutForm()
 
-    return render(request, "provider/manage_blackouts.html", {
-        "facility": f,
-        "form": form,
-        "blackouts": blackouts,
-    })
+    return render(
+        request,
+        "provider/manage_blackouts.html",
+        {"facility": f, "form": form, "blackouts": blackouts},
+    )
+
 
 @login_required
 @require_POST

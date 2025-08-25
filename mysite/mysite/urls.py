@@ -18,7 +18,6 @@ from django.contrib import admin
 from django.urls import path, include
 from images import views as image_views
 
-
 urlpatterns = [
     path("admin/requests/", image_views.facility_requests_list, name="facility_requests"),
     path("admin/requests/<int:pk>/approve/", image_views.facility_request_approve, name="facility_request_approve"),

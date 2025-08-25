@@ -1,45 +1,47 @@
 {% extends "base.html" %}
 {% block content %}
-<h1 class="mb-3">Facilities</h1>
+    <h1 class="mb-3">Facilities</h1>
 
-<form class="row gy-2 gx-2 align-items-center mb-3">
-  <div class="col-auto">
-     <input type="text" class="form-control" name="q" value="{{ q }}" placeholder="Search by name or location">
-  </div>
-  <div class="col-auto">
-    <select name="sport" class="form-select">
-      <option value="">All sports</option>
-      {% for s in SPORT_OPTIONS %}
-        <option value="{{ s }}" {% if s == sport %}selected{% endif %}>{{ s }}</option>
-      {% endfor %}
-    </select>
-  </div>
-  <div class="col-auto"><button class="btn btn-primary">Search</button></div>
-</form>
-
-<div class="row">
-  {% for f in facilities %}
-    <div class="col-md-4 mb-3">
-      <div class="card h-100">
-        {% if f.image %}<img src="{{ f.image.url }}" class="card-img-top" alt="{{ f.name }}">{% endif %}
-        <div class="card-body">
-          <h5 class="card-title">{{ f.name }}</h5>
-           <p class="small text-muted">
-            {{ f.location }}
-            {% with c=f.courts.all|first %}
-              {% if c and c.sport %}
-                • {{ c.sport.name }}
-              {% elif f.get_sport_type_display %}
-                • {{ f.get_sport_type_display }}
-              {% endif %}
-            {% endwith %}
-          </p>
-          <a class="btn btn-sm btn-primary" href="{% url 'images:facility_detail' f.id %}">View</a>
+    <form class="row gy-2 gx-2 align-items-center mb-3">
+        <div class="col-auto">
+            <input type="text" class="form-control" name="q" value="{{ q }}" placeholder="Search by name or location">
         </div>
-      </div>
+        <div class="col-auto">
+            <select name="sport" class="form-select">
+                <option value="">All sports</option>
+                {% for s in SPORT_OPTIONS %}
+                    <option value="{{ s }}" {% if s == sport %}selected{% endif %}>{{ s }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-auto">
+            <button class="btn btn-primary">Search</button>
+        </div>
+    </form>
+
+    <div class="row">
+        {% for f in facilities %}
+            <div class="col-md-4 mb-3">
+                <div class="card h-100">
+                    {% if f.image %}<img src="{{ f.image.url }}" class="card-img-top" alt="{{ f.name }}">{% endif %}
+                    <div class="card-body">
+                        <h5 class="card-title">{{ f.name }}</h5>
+                        <p class="small text-muted">
+                            {{ f.location }}
+                            {% with c=f.courts.all|first %}
+                                {% if c and c.sport %}
+                                    • {{ c.sport.name }}
+                                {% elif f.get_sport_type_display %}
+                                    • {{ f.get_sport_type_display }}
+                                {% endif %}
+                            {% endwith %}
+                        </p>
+                        <a class="btn btn-sm btn-primary" href="{% url 'images:facility_detail' f.id %}">View</a>
+                    </div>
+                </div>
+            </div>
+        {% empty %}
+            <p>No facilities found.</p>
+        {% endfor %}
     </div>
-  {% empty %}
-    <p>No facilities found.</p>
-  {% endfor %}
-</div>
 {% endblock %}

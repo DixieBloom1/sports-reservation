@@ -4,6 +4,7 @@ from django.http import HttpResponse
 from django.contrib.admin.views.decorators import staff_member_required
 from .models import Booking
 
+
 @staff_member_required
 def usage_report_csv(request):
     date_from = request.GET.get("from")
@@ -20,7 +21,7 @@ def usage_report_csv(request):
     rows = {}
     for b in qs:
         key = (b.facility.name, b.start_dt.date())
-        rows.setdefault(key, {"count":0,"revenue":0})
+        rows.setdefault(key, {"count": 0, "revenue": 0})
         rows[key]["count"] += 1
         rows[key]["revenue"] += float(b.price)
 

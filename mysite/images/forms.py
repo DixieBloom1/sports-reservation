@@ -1,7 +1,9 @@
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.models import User
-from .models import Booking, UserProfile, Court, Facility, Sport, Blackout  # make sure UserProfile exists in models.py
+
+from .models import Booking, UserProfile, Court, Facility, Blackout
+
 
 class LoginForm(AuthenticationForm):
     def __init__(self, *args, **kwargs):
@@ -13,10 +15,12 @@ class LoginForm(AuthenticationForm):
             "class": "form-control form-control-lg", "placeholder": "Password"
         })
 
+
 class RegisterForm(forms.ModelForm):
     password = forms.CharField(
         widget=forms.PasswordInput(attrs={"class": "form-control form-control-lg", "placeholder": "Password"})
     )
+
     class Meta:
         model = User
         fields = ["username", "email", "password"]
@@ -30,6 +34,7 @@ class RegisterForm(forms.ModelForm):
             "class": "form-control form-control-lg", "placeholder": "Email"
         })
 
+
 class UserForm(forms.ModelForm):
     class Meta:
         model = User
@@ -39,6 +44,7 @@ class UserForm(forms.ModelForm):
             "email": forms.EmailInput(attrs={"class": "form-control form-control-lg", "placeholder": "Email"}),
         }
 
+
 class ProfileForm(forms.ModelForm):
     class Meta:
         model = UserProfile
@@ -46,6 +52,7 @@ class ProfileForm(forms.ModelForm):
         widgets = {
             "phone": forms.TextInput(attrs={"class": "form-control form-control-lg", "placeholder": "+385..."}),
         }
+
 
 class BookingForm(forms.ModelForm):
     court = forms.ModelChoiceField(queryset=Court.objects.none(), required=False)
@@ -65,31 +72,30 @@ class BookingForm(forms.ModelForm):
             qs = facility.courts.filter(is_active=True)
             self.fields["court"].queryset = qs
             has_courts = qs.exists()
-        # If no courts, hide field and make it optional
         if not has_courts:
             self.fields["court"].required = False
             self.fields["court"].widget = forms.HiddenInput()
 
+
 class ProviderRegisterForm(forms.Form):
-    # account
-    username = forms.CharField(max_length=150, widget=forms.TextInput(attrs={"class":"form-control form-control-lg"}))
-    email = forms.EmailField(widget=forms.EmailInput(attrs={"class":"form-control form-control-lg"}))
-    phone = forms.CharField(max_length=30, required=False, widget=forms.TextInput(attrs={"class":"form-control form-control-lg"}))
-    password = forms.CharField(widget=forms.PasswordInput(attrs={"class":"form-control form-control-lg"}))
-    # facility (sport text field only for admin info)
-    facility_name = forms.CharField(max_length=120, widget=forms.TextInput(attrs={"class":"form-control"}))
+    username = forms.CharField(max_length=150, widget=forms.TextInput(attrs={"class": "form-control form-control-lg"}))
+    email = forms.EmailField(widget=forms.EmailInput(attrs={"class": "form-control form-control-lg"}))
+    phone = forms.CharField(max_length=30, required=False,
+                            widget=forms.TextInput(attrs={"class": "form-control form-control-lg"}))
+    password = forms.CharField(widget=forms.PasswordInput(attrs={"class": "form-control form-control-lg"}))
+    facility_name = forms.CharField(max_length=120, widget=forms.TextInput(attrs={"class": "form-control"}))
     offered_sports_text = forms.CharField(
         max_length=200,
-        widget=forms.TextInput(attrs={"class":"form-control", "placeholder":"e.g., Padel, Badminton, Yoga"})
+        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g., Padel, Badminton, Yoga"})
     )
-    location = forms.CharField(max_length=200, widget=forms.TextInput(attrs={"class":"form-control"}))
-    description = forms.CharField(required=False, widget=forms.Textarea(attrs={"class":"form-control", "rows":3}))
-    open_time = forms.TimeField(widget=forms.TimeInput(attrs={"type":"time","class":"form-control"}))
-    close_time = forms.TimeField(widget=forms.TimeInput(attrs={"type":"time","class":"form-control"}))
-    num_courts = forms.IntegerField(min_value=0, initial=1, widget=forms.NumberInput(attrs={"class":"form-control"}))
+    location = forms.CharField(max_length=200, widget=forms.TextInput(attrs={"class": "form-control"}))
+    description = forms.CharField(required=False, widget=forms.Textarea(attrs={"class": "form-control", "rows": 3}))
+    open_time = forms.TimeField(widget=forms.TimeInput(attrs={"type": "time", "class": "form-control"}))
+    close_time = forms.TimeField(widget=forms.TimeInput(attrs={"type": "time", "class": "form-control"}))
+    num_courts = forms.IntegerField(min_value=0, initial=1, widget=forms.NumberInput(attrs={"class": "form-control"}))
+
 
 class FacilityForm(forms.ModelForm):
-
     sport_name = forms.CharField(
         label="Sport",
         max_length=60,
@@ -106,7 +112,6 @@ class FacilityForm(forms.ModelForm):
         ]
         widgets = {
             "name": forms.TextInput(attrs={"class": "form-control"}),
-            "sport_name": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g. Padel"}),
             "location": forms.TextInput(attrs={"class": "form-control"}),
             "description": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
             "slot_length_minutes": forms.NumberInput(attrs={"class": "form-control"}),
@@ -116,40 +121,44 @@ class FacilityForm(forms.ModelForm):
             "image": forms.ClearableFileInput(attrs={"class": "form-control"}),
         }
 
-    def clean_sport_text(self):
+    def clean_sport_name(self):
         return " ".join((self.cleaned_data.get("sport_name") or "").split())
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Pre-fill sport_name from instance.sport_text when editing
         if getattr(self.instance, "sport_text", ""):
             self.fields["sport_name"].initial = self.instance.sport_text
 
     def save(self, commit=True):
         obj = super().save(commit=False)
-        # Map the virtual field to the real model field
         obj.sport_text = (self.cleaned_data.get("sport_name") or "").strip()
         if commit:
             obj.save()
-            self.save_m2m()
         return obj
+
 
 class CourtForm(forms.ModelForm):
     sport_name = forms.CharField(
-        max_length=50, label="Sport",
-        widget=forms.TextInput(attrs={"class":"form-control", "placeholder":"e.g., Padel"})
+        max_length=50,
+        label="Sport",
+        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g., Padel"})
     )
+
     class Meta:
         model = Court
         fields = ["name", "is_active"]
-        widgets = {"name": forms.TextInput(attrs={"class":"form-control"})}
+        widgets = {
+            "name": forms.TextInput(attrs={"class": "form-control"})
+        }
+
 
 class BlackoutForm(forms.ModelForm):
     class Meta:
         model = Blackout
-        fields = ["start_dt", "end_dt", "note"]   # rename note -> your field if different
+        fields = ["start_dt", "end_dt", "note"]
         widgets = {
             "start_dt": forms.DateTimeInput(attrs={"type": "datetime-local", "class": "form-control"}),
-            "end_dt":   forms.DateTimeInput(attrs={"type": "datetime-local", "class": "form-control"}),
-            "note":     forms.Textarea(attrs={"class": "form-control", "rows": 2, "placeholder": "Reason / notice users will see (optional)"}),
+            "end_dt": forms.DateTimeInput(attrs={"type": "datetime-local", "class": "form-control"}),
+            "note": forms.Textarea(
+                attrs={"class": "form-control", "rows": 2, "placeholder": "Reason / notice users will see (optional)"}),
         }

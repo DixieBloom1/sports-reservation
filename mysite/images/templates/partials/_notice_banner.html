@@ -1,13 +1,13 @@
 {% if day_blackouts %}
-  <div class="alert alert-warning" role="alert">
-    Maintenance on this date:
-    <ul class="mb-0">
-      {% for b in day_blackouts %}
-        <li>
-          {{ b.start_dt|date:"H:i" }}–{{ b.end_dt|date:"H:i" }}
-          — {{ b.note|default:b.reason|default:"Maintenance" }}
-        </li>
-      {% endfor %}
-    </ul>
-  </div>
+    <div class="alert alert-warning" role="alert">
+        Maintenance on this date:
+        <ul class="mb-0">
+            {% for b in day_blackouts %}
+                <li>
+                    {{ b.start_dt|date:"H:i" }}–{{ b.end_dt|date:"H:i" }}
+                    — {{ b.note|default:b.reason|default:"Maintenance" }}
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
 {% endif %}
