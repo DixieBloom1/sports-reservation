@@ -445,3 +445,51 @@ def modify_booking(request, pk):
         form = BookingForm(instance=b, facility=b.facility)
 
     return render(request, "bookings/modify.html", {"booking": b, "form": form})
+
+@login_required
+def provider_edit_facility(request, facility_id):
+    """Provider can edit only their own facility."""
+    if request.user.profile.role != "provider":
+        messages.error(request, "Only providers can access this page.")
+        return redirect("images:facilities_list")
+
+    facility = get_object_or_404(Facility, id=facility_id, owner=request.user)
+
+    if request.method == "POST":
+        form = FacilityForm(request.POST, request.FILES, instance=facility)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Facility updated.")
+            return redirect("images:provider_facilities")
+        else:
+            messages.error(request, "Please fix the errors below.")
+    else:
+        form = FacilityForm(instance=facility)
+
+    return render(request, "provider/edit_facility.html", {"form": form, "facility": facility})
+
+
+# DELETE
+@login_required
+@require_POST
+def provider_delete_facility(request, facility_id):
+    """Provider deletes their facility (block if future confirmed bookings exist)."""
+    if request.user.profile.role != "provider":
+        messages.error(request, "Only providers can access this page.")
+        return redirect("images:facilities_list")
+
+    facility = get_object_or_404(Facility, id=facility_id, owner=request.user)
+
+    # Block deletion if there are future confirmed bookings
+    has_future_bookings = Booking.objects.filter(
+        facility=facility,
+        status="confirmed",
+        start_dt__gte=timezone.now(),
+    ).exists()
+    if has_future_bookings:
+        messages.error(request, "You cannot delete a facility with future confirmed bookings.")
+        return redirect("images:provider_facilities")
+
+    facility.delete()
+    messages.success(request, "Facility deleted.")
+    return redirect("images:provider_facilities")

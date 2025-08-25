@@ -23,7 +23,6 @@
     <div class="col-md-4">
       {{ form.sport_name.label_tag }}
       {{ form.sport_name }}
-      <div class="form-text">Free text (e.g. “Padel”, “Volleyball”).</div>
       {% if form.sport_name.errors %}
         <div class="invalid-feedback d-block">
           {{ form.sport_name.errors|striptags }}

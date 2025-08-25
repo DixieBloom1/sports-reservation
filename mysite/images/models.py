@@ -19,6 +19,20 @@ class Facility(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
         related_name="owned_facilities", null=True, blank=True
     )
+
+    @property
+    def display_sport(self) -> str:
+        # Prefer first court’s sport if present
+        court = self.courts.filter(sport__isnull=False).select_related("sport").first()
+        if court and court.sport and court.sport.name:
+            return court.sport.name
+
+        # Fall back to legacy sport_type choices if you still have them
+        try:
+            return dict(self.SPORT_CHOICES).get(self.sport_type, "")
+        except Exception:
+            return ""
+
     name = models.CharField(max_length=120, unique=True)
     sport_type = models.CharField(max_length=30, choices=SPORT_CHOICES)
     location = models.CharField(max_length=200)
