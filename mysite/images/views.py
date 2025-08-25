@@ -18,7 +18,8 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST, require_http_methods
 
 from .models import Facility, Booking, Blackout, UserProfile, Court, FacilitySignupRequest, Sport
-from .forms import RegisterForm, BookingForm, UserForm, ProfileForm, ProviderRegisterForm, FacilityForm, CourtForm
+from .forms import RegisterForm, BookingForm, UserForm, ProfileForm, ProviderRegisterForm, FacilityForm, CourtForm, \
+    BlackoutForm
 from .services import available_slots, available_slots_court
 
 
@@ -173,6 +174,9 @@ def facility_detail(request, pk):
     upcoming_blackouts = Blackout.objects.filter(
         facility=f, end_dt__gte=now
     ).order_by("start_dt")[:20]
+    past_blackouts = Blackout.objects.filter(
+        facility=f, end_dt__lt=now
+    ).order_by("-start_dt")[:20]
     day_blackouts = Blackout.objects.filter(
         facility=f, start_dt__date__lte=selected_date, end_dt__date__gte=selected_date
     ).order_by("start_dt")
@@ -197,7 +201,7 @@ def facility_detail(request, pk):
         "selected_court": selected_court,
         "slots": slots,
         "selected_date": selected_date,
-        # NEW
+        "past_blackouts": past_blackouts,
         "upcoming_blackouts": upcoming_blackouts,
         "day_blackouts": day_blackouts,
     })
@@ -370,9 +374,7 @@ def book_view(request, facility_id):
 
     # court (optional)
     court_id = request.GET.get("court") or request.POST.get("court")
-    court = None
-    if court_id:
-        court = get_object_or_404(Court, pk=court_id, facility=facility)
+    court = get_object_or_404(Court, pk=court_id, facility=facility) if court_id else None
 
     # start/end required
     start_str = request.GET.get("start") if request.method == "GET" else request.POST.get("start")
@@ -384,10 +386,8 @@ def book_view(request, facility_id):
     try:
         start = datetime.fromisoformat(start_str)
         end = datetime.fromisoformat(end_str)
-        if timezone.is_naive(start):
-            start = timezone.make_aware(start, timezone.get_current_timezone())
-        if timezone.is_naive(end):
-            end = timezone.make_aware(end, timezone.get_current_timezone())
+        if timezone.is_naive(start): start = timezone.make_aware(start, timezone.get_current_timezone())
+        if timezone.is_naive(end):   end   = timezone.make_aware(end,   timezone.get_current_timezone())
     except ValueError:
         messages.error(request, "Invalid date/time format.")
         return _back_to_facility(facility)
@@ -396,11 +396,38 @@ def book_view(request, facility_id):
         messages.error(request, "Start must be before end.")
         return _back_to_facility(facility)
 
+    # block out times covered by notices/maintenance
+    if Blackout.objects.filter(facility=facility, start_dt__lt=end, end_dt__gt=start).exists():
+        messages.error(request, "That time is unavailable due to a posted notice/blackout.")
+        return _back_to_facility(facility)
+
+    now = timezone.now()
+    upcoming_blackouts = Blackout.objects.filter(
+        facility=facility, end_dt__gte=now
+    ).order_by("start_dt")[:20]
+    past_blackouts = Blackout.objects.filter(
+        facility=facility, end_dt__lt=now
+    ).order_by("-start_dt")[:20]
+    selected_day = start.date()
+    day_blackouts = Blackout.objects.filter(
+        facility=facility,
+        start_dt__date__lte=selected_day,
+        end_dt__date__gte=selected_day,
+    ).order_by("start_dt")
+
     if request.method == "GET":
         return render(
             request,
             "book/confirm.html",
-            {"facility": facility, "court": court, "start": start, "end": end},
+            {
+                "facility": facility,
+                "court": court,
+                "start": start,
+                "end": end,
+                "upcoming_blackouts": upcoming_blackouts,
+                "past_blackouts": past_blackouts,
+                "day_blackouts": day_blackouts,
+            },
         )
 
     # POST: try to create
@@ -421,7 +448,7 @@ def book_view(request, facility_id):
         user=request.user,
         start_dt=start,
         end_dt=end,
-        # status via model default
+        # status uses model default
     )
     messages.success(request, "Booking created.")
     return redirect("images:my_bookings")
@@ -500,3 +527,37 @@ def provider_delete_facility(request, facility_id):
     facility.delete()
     messages.success(request, "Facility deleted.")
     return redirect("images:provider_facilities")
+
+@login_required
+def provider_manage_blackouts(request, facility_id):
+    f = get_object_or_404(Facility, id=facility_id, owner=request.user)
+    blackouts = f.blackouts.all()  # thanks to related_name
+
+    if request.method == "POST":
+        form = BlackoutForm(request.POST)
+        if form.is_valid():
+            b = form.save(commit=False)
+            b.facility = f
+            if b.start_dt >= b.end_dt:
+                form.add_error("end_dt", "End must be after start.")
+            else:
+                b.save()
+                messages.success(request, "Notice/blackout added.")
+                return redirect("images:provider_manage_blackouts", facility_id=f.id)
+    else:
+        form = BlackoutForm()
+
+    return render(request, "provider/manage_blackouts.html", {
+        "facility": f,
+        "form": form,
+        "blackouts": blackouts,
+    })
+
+@login_required
+@require_POST
+def provider_delete_blackout(request, facility_id, blackout_id):
+    f = get_object_or_404(Facility, id=facility_id, owner=request.user)
+    b = get_object_or_404(Blackout, id=blackout_id, facility=f)
+    b.delete()
+    messages.success(request, "Notice removed.")
+    return redirect("images:provider_manage_blackouts", facility_id=f.id)

@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.models import User
-from .models import Booking, UserProfile, Court, Facility, Sport  # make sure UserProfile exists in models.py
+from .models import Booking, UserProfile, Court, Facility, Sport, Blackout  # make sure UserProfile exists in models.py
 
 class LoginForm(AuthenticationForm):
     def __init__(self, *args, **kwargs):
@@ -143,3 +143,13 @@ class CourtForm(forms.ModelForm):
         model = Court
         fields = ["name", "is_active"]
         widgets = {"name": forms.TextInput(attrs={"class":"form-control"})}
+
+class BlackoutForm(forms.ModelForm):
+    class Meta:
+        model = Blackout
+        fields = ["start_dt", "end_dt", "note"]   # rename note -> your field if different
+        widgets = {
+            "start_dt": forms.DateTimeInput(attrs={"type": "datetime-local", "class": "form-control"}),
+            "end_dt":   forms.DateTimeInput(attrs={"type": "datetime-local", "class": "form-control"}),
+            "note":     forms.Textarea(attrs={"class": "form-control", "rows": 2, "placeholder": "Reason / notice users will see (optional)"}),
+        }

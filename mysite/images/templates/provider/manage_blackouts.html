@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block content %}
+<h3>Notices / Blackouts — {{ facility.name }}</h3>
+
+<form method="post" class="mt-3">
+  {% csrf_token %}
+  <div class="row g-3">
+    <div class="col-md-4">
+      <label class="form-label">Start</label>
+      {{ form.start_dt }}
+      {{ form.start_dt.errors }}
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">End</label>
+      {{ form.end_dt }}
+      {{ form.end_dt.errors }}
+    </div>
+    <div class="col-md-12">
+      <label class="form-label">Note (shown to users)</label>
+      {{ form.note }}
+      {{ form.note.errors }}
+    </div>
+  </div>
+  <button class="btn btn-primary mt-3">Add notice</button>
+</form>
+
+<hr class="my-4">
+
+<h5>Existing notices</h5>
+<table class="table align-middle">
+  <thead>
+    <tr><th>Start</th><th>End</th><th>Note</th><th class="text-end">Actions</th></tr>
+  </thead>
+  <tbody>
+    {% for b in blackouts %}
+      <tr>
+        <td>{{ b.start_dt|date:"Y-m-d H:i" }}</td>
+        <td>{{ b.end_dt|date:"Y-m-d H:i" }}</td>
+        <td>{{ b.note|default:"—" }}</td>
+        <td class="text-end">
+          <form method="post" action="{% url 'images:provider_delete_blackout' facility.id b.id %}">
+            {% csrf_token %}
+            <button class="btn btn-sm btn-outline-danger"
+                    onclick="return confirm('Delete this notice?')">Delete</button>
+          </form>
+        </td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="4" class="text-muted">No notices yet.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

@@ -5,25 +5,7 @@
         <h5 class="modal-title">Notices & maintenance — {{ facility.name }}</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
-      <div class="modal-body">
-        {% if upcoming_blackouts %}
-          <ul class="list-group">
-          {% for b in upcoming_blackouts %}
-            <li class="list-group-item">
-              <div class="d-flex justify-content-between">
-                <strong>{{ b.reason|default:"Maintenance" }}</strong>
-                <span class="badge text-bg-warning">Scheduled</span>
-              </div>
-              <div class="small text-muted mt-1">
-                {{ b.start_dt|date:"Y-m-d H:i" }} – {{ b.end_dt|date:"Y-m-d H:i" }}
-              </div>
-            </li>
-          {% endfor %}
-          </ul>
-        {% else %}
-          <p class="mb-0">No upcoming maintenance or notices.</p>
-        {% endif %}
-      </div>
+        {% include "partials/_notice_modal_body.html" %}
       <div class="modal-footer">
         <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
       </div>

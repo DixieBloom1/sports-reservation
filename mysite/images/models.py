@@ -124,6 +124,7 @@ class Blackout(models.Model):
     facility = models.ForeignKey(Facility, on_delete=models.CASCADE, related_name="blackouts")
     start_dt = models.DateTimeField()
     end_dt = models.DateTimeField()
+    note = models.CharField(max_length=200, blank=True)
     reason = models.CharField(max_length=200, blank=True)
     def __str__(self): return f"{self.facility.name} blackout {self.start_dt:%Y-%m-%d %H:%M}–{self.end_dt:%H:%M}"
 

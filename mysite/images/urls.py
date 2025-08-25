@@ -26,7 +26,11 @@ urlpatterns = [
     path("provider/facilities/add/", views.provider_add_facility, name="provider_add_facility"),
     path("provider/facilities/<int:facility_id>/courts/", views.provider_manage_courts, name="provider_manage_courts"),
     path("provider/bookings/", views.provider_bookings, name="provider_bookings"),
-path("provider/facilities/<int:facility_id>/edit/", views.provider_edit_facility, name="provider_edit_facility"),
+    path("provider/facilities/<int:facility_id>/edit/", views.provider_edit_facility, name="provider_edit_facility"),
     path("provider/facilities/<int:facility_id>/delete/", views.provider_delete_facility, name="provider_delete_facility"),
+    path("provider/facilities/<int:facility_id>/blackouts/",
+         views.provider_manage_blackouts, name="provider_manage_blackouts"),
+    path("provider/facilities/<int:facility_id>/blackouts/<int:blackout_id>/delete/",
+         views.provider_delete_blackout, name="provider_delete_blackout"),
 ]
 

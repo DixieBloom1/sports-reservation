@@ -3,7 +3,7 @@
 <h2>{{ facility.name }}</h2>
 <p class="text-muted">{{ facility.location }}</p>
 <p>{{ facility.description }}</p>
-
+    {% include "partials/_notice_banner.html" %}
 <form class="row gy-2 gx-2 align-items-center mb-3">
   <div class="col-auto">
     <input type="date" class="form-control" name="date" value="{{ selected_date|date:'Y-m-d' }}">
@@ -25,26 +25,7 @@
   <div class="col-auto">
     <button class="btn btn-primary">Check</button>
   </div>
-
-  <div class="col-auto">
-    <button type="button" class="btn btn-outline-warning"
-            data-bs-toggle="modal" data-bs-target="#noticesModal">
-      Notices &amp; maintenance{% if upcoming_blackouts %} ({{ upcoming_blackouts|length }}){% endif %}
-    </button>
-  </div>
 </form>
-
-{% if day_blackouts %}
-  <div class="alert alert-warning" role="alert">
-    Maintenance on this date:
-    <ul class="mb-0">
-      {% for b in day_blackouts %}
-        <li>{{ b.start_dt|date:"H:i" }}–{{ b.end_dt|date:"H:i" }} — {{ b.reason|default:"Maintenance" }}</li>
-      {% endfor %}
-    </ul>
-  </div>
-{% endif %}
-
 <h5 class="mb-2">
   Available slots on {{ selected_date }}
   {% if has_courts and selected_court %} — {{ selected_court.name }}{% endif %}

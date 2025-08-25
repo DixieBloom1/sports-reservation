@@ -12,7 +12,6 @@
         <div class="card-body">
           <h5 class="card-title">{{ f.name }}</h5>
 
-          {# Show location + sport nicely; fall back if sport not available #}
           <p class="small text-muted">
             {{ f.location }}
             {% if f.display_sport %} • {{ f.display_sport }}{% endif %}
@@ -22,6 +21,8 @@
             <a class="btn btn-sm btn-outline-secondary" href="{% url 'images:provider_manage_courts' f.id %}">
               Manage courts
             </a>
+              <a class="btn btn-sm btn-outline-secondary"
+                href="{% url 'images:provider_manage_blackouts' f.id %}">Notices / Blackouts</a>
             <a class="btn btn-sm btn-outline-primary" href="{% url 'images:provider_edit_facility' f.id %}">
               Edit
             </a>
