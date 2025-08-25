@@ -2,15 +2,17 @@
 {% block content %}
 <h3 class="mb-3">Facility signup requests</h3>
 
-<p class="text-muted">Review provider applications. Approving creates a Facility, activates the provider’s account, and (optionally) creates the initial courts. Denying deletes the request and the user.</p>
+<p class="text-muted">
+  Review provider applications. Approving only activates the provider’s account.
+  Providers will add facilities themselves from their dashboard.
+</p>
 
 <table class="table table-striped align-middle">
   <thead>
     <tr>
       <th>User</th>
-      <th>Facility</th>
-      <th>Offered sports</th>
-      <th>Assign sport</th>
+      <th>Facility (requested)</th>
+      <th>Offered sports (free text)</th>
       <th>Courts</th>
       <th>Location</th>
       <th>Submitted</th>
@@ -26,24 +28,22 @@
         </td>
         <td><strong>{{ r.facility_name }}</strong></td>
         <td>{{ r.offered_sports_text }}</td>
-        <td style="min-width:240px">
-          <form action="{% url 'facility_request_approve' r.id %}" method="post" class="d-flex gap-2">
-            {% csrf_token %}
-            <button class="btn btn-sm btn-success">Approve</button>
-          </form>
-        </td>
         <td>{{ r.num_courts }}</td>
         <td>{{ r.location }}</td>
         <td>{{ r.created_at|date:"Y-m-d H:i" }}</td>
         <td class="text-end">
-          <form action="{% url 'facility_request_deny' r.id %}" method="post" class="d-inline">
+          <form action="{% url 'facility_request_approve' r.id %}" method="post" class="d-inline">
+            {% csrf_token %}
+            <button class="btn btn-sm btn-success">Approve</button>
+          </form>
+          <form action="{% url 'facility_request_deny' r.id %}" method="post" class="d-inline ms-1">
             {% csrf_token %}
             <button class="btn btn-sm btn-outline-danger">Deny</button>
           </form>
         </td>
       </tr>
     {% empty %}
-      <tr><td colspan="8" class="text-center py-4">No pending requests.</td></tr>
+      <tr><td colspan="7" class="text-center py-4">No pending requests.</td></tr>
     {% endfor %}
   </tbody>
 </table>

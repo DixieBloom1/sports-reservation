@@ -228,47 +228,34 @@ def provider_register_view(request):
 
 @staff_member_required
 def facility_requests_list(request):
-    """List all pending provider signup requests for admin review."""
-    pending = (
-        FacilitySignupRequest.objects
-        .filter(status="pending")
-        .select_related("user")
-        .order_by("created_at")
-    )
-    return render(
-        request,
-        "admin_facility/requests.html",
-        {"pending": pending},
-    )
+    pending = (FacilitySignupRequest.objects
+               .filter(status="pending")
+               .select_related("user")
+               .order_by("created_at"))
+    return render(request, "admin_facility/requests.html", {"pending": pending})
 
 
 
 @staff_member_required
 @require_POST
 def facility_request_approve(request, pk):
+    """Approve a provider request: activate the user and mark request approved.
+    No Facility is created here; providers must add facilities themselves."""
     req = get_object_or_404(FacilitySignupRequest, pk=pk, status="pending")
-    with transaction.atomic():
-        facility = Facility.objects.create(
-            owner=req.user,
-            name=req.facility_name,
-            location=req.location,
-            description=req.description,
-            slot_length_minutes=60,
-            open_time=req.open_time,
-            close_time=req.close_time,
-            base_price=0,
-        )
-        for i in range(1, max(0, int(req.num_courts)) + 1):
-            Court.objects.create(facility=facility, name=f"Court {i}")
 
-        req.user.is_active = True
-        req.user.save()
+    with transaction.atomic():
+        user = req.user
+        user.is_active = True
+        user.save()
+
         req.status = "approved"
         req.save()
 
-    messages.success(request, f"Approved '{req.user.username}'. Facility '{facility.name}' created.")
+    messages.success(
+        request,
+        f"Approved '{user.username}'. They can now sign in and add their facilities."
+    )
     return redirect("facility_requests")
-
 
 @staff_member_required
 @require_POST
