@@ -9,11 +9,12 @@
 
   <div class="col-auto">
     <select class="form-select" name="sport">
-      <option value="">All sports</option>
-      {% for v, label in SPORT_CHOICES %}
-        <option value="{{ v }}" {% if sport == v %}selected{% endif %}>{{ label }}</option>
-      {% endfor %}
-    </select>
+        <option value="">All sports</option>
+    {% for label in SPORT_OPTIONS %}
+        <option value="{{ label }}" {% if sport == label %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+</select>
+
   </div>
 
   <div class="col-auto"><button class="btn btn-primary">Search</button></div>

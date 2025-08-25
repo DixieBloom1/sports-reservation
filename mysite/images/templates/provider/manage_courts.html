@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block content %}
+<h3 class="mb-3">Manage courts — {{ facility.name }}</h3>
+
+<form method="post" class="card card-body mb-3">
+  {% csrf_token %}
+
+  {% if form.non_field_errors %}
+    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+  {% endif %}
+
+  <div class="row g-3 align-items-end">
+    <div class="col-md-4">
+      {{ form.name.label_tag }}
+      {{ form.name }}
+      {% if form.name.errors %}
+        <div class="invalid-feedback d-block">
+          {{ form.name.errors|striptags }}
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="col-md-4">
+      {{ form.sport_name.label_tag }}
+      {{ form.sport_name }}
+      <div class="form-text">Free text (e.g. “Padel”, “Volleyball”).</div>
+      {% if form.sport_name.errors %}
+        <div class="invalid-feedback d-block">
+          {{ form.sport_name.errors|striptags }}
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="col-md-2">
+      {{ form.is_active.label_tag }}
+      {{ form.is_active }}
+      {% if form.is_active.errors %}
+        <div class="invalid-feedback d-block">
+          {{ form.is_active.errors|striptags }}
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="col-md-2">
+      <button class="btn btn-primary w-100">Add court</button>
+    </div>
+  </div>
+</form>
+
+<table class="table table-striped align-middle">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Sport</th>
+      <th>Active</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for c in courts %}
+      <tr>
+        <td>{{ c.name }}</td>
+        <td>
+          {% if c.sport_name %}
+            {{ c.sport_name }}
+          {% elif c.sport %}
+            {{ c.sport.name }}
+          {% elif c.get_sport_type_display %}
+            {{ c.get_sport_type_display }}
+          {% else %}
+            —
+          {% endif %}
+        </td>
+        <td>
+          {% if c.is_active %}
+            <span class="badge bg-success">Yes</span>
+          {% else %}
+            <span class="badge bg-secondary">No</span>
+          {% endif %}
+        </td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="3" class="text-center py-4">No courts yet.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center">
+  <h3>My facilities</h3>
+  <a class="btn btn-primary" href="{% url 'images:provider_add_facility' %}">Add facility</a>
+</div>
+<div class="row mt-3">
+  {% for f in facilities %}
+    <div class="col-md-6 mb-3">
+      <div class="card h-100">
+        <div class="card-body">
+          <h5 class="card-title">{{ f.name }}</h5>
+          <p class="small text-muted">{{ f.location }} • {{ f.get_sport_type_display }}</p>
+          <a class="btn btn-sm btn-outline-secondary" href="{% url 'images:provider_manage_courts' f.id %}">Manage courts</a>
+        </div>
+      </div>
+    </div>
+  {% empty %}
+    <p>No facilities yet.</p>
+  {% endfor %}
+</div>
+{% endblock %}

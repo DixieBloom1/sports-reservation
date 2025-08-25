@@ -21,5 +21,10 @@ urlpatterns = [
     path("logout/", views.logout_post, name="logout"),
     path("bookings/<int:pk>/confirmed/", views.booking_confirmed, name="booking_confirmed"),
     path("bookings/<int:pk>/modify/", views.modify_booking, name="modify_booking"),
+    path("provider/register/", views.provider_register_view, name="provider_register"),
+    path("provider/facilities/", views.provider_facilities, name="provider_facilities"),
+    path("provider/facilities/add/", views.provider_add_facility, name="provider_add_facility"),
+    path("provider/facilities/<int:facility_id>/courts/", views.provider_manage_courts, name="provider_manage_courts"),
+    path("provider/bookings/", views.provider_bookings, name="provider_bookings"),
 ]
 

@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+<h3 class="mb-3">Confirm booking</h3>
+
+<div class="card mb-3">
+  <div class="card-body">
+    <p class="mb-1"><strong>Facility:</strong> {{ facility.name }}</p>
+    <p class="mb-1"><strong>Court:</strong>
+      {% if court %}{{ court.name }}{% else %}<em>Any / not specified</em>{% endif %}
+    </p>
+    <p class="mb-1"><strong>Start:</strong> {{ start|date:"Y-m-d H:i" }}</p>
+    <p class="mb-0"><strong>End:</strong> {{ end|date:"Y-m-d H:i" }}</p>
+  </div>
+</div>
+
+<form method="post">
+  {% csrf_token %}
+  <input type="hidden" name="start" value="{{ start|date:'c' }}">
+  <input type="hidden" name="end" value="{{ end|date:'c' }}">
+  {% if court %}<input type="hidden" name="court" value="{{ court.id }}">{% endif %}
+  <button class="btn btn-primary">Confirm booking</button>
+  <a class="btn btn-outline-secondary ms-2" href="{% url 'images:facilities_list' %}">Cancel</a>
+</form>
+{% endblock %}

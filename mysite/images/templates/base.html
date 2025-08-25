@@ -17,6 +17,13 @@
     <a class="navbar-brand" href="{% url 'images:facilities_list' %}">Sports Reservation</a>
     <div class="d-flex align-items-center">
       {% if user.is_authenticated %}
+         {% if user.is_staff %}
+            <a class="btn btn-outline-warning btn-sm me-2" href="{% url 'facility_requests' %}">Requests</a>
+        {% endif %}
+        {% if user.profile.role == 'provider' %}
+            <a class="btn btn-outline-light btn-sm me-2" href="{% url 'images:provider_facilities' %}">Provider dashboard</a>
+            <a class="btn btn-outline-light btn-sm me-2" href="{% url 'images:provider_bookings' %}">Provider bookings</a>
+        {% endif %}
         <a class="btn btn-outline-light btn-sm" href="{% url 'images:my_bookings' %}">My bookings</a>
         <a class="btn btn-outline-light btn-sm ms-2" href="{% url 'images:profile' %}">Profile</a>
         <form action="{% url 'images:logout' %}" method="post" class="d-inline ms-2">
@@ -38,15 +45,57 @@
 <!-- Toasts (positioned fixed) -->
 <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index:1080">
   {% for message in messages %}
-    <div class="toast align-items-center" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="4000">
-      <div class="toast-header">
-        <strong class="me-auto">{{ message.tags|title|default:"Notice" }}</strong>
-        <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
-      </div>
-      <div class="toast-body">
-        {% autoescape off %}{{ message }}{% endautoescape %}
-      </div>
-    </div>
+    {% with tags=message.tags %}
+      {% if 'success' in tags %}
+        {% with toast_class='text-bg-success' toast_title='Success' %}
+          <div class="toast {{ toast_class }} border-0" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="4000">
+            <div class="toast-header bg-transparent border-0">
+              <strong class="me-auto text-white">{{ toast_title }}</strong>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body">
+              {% autoescape off %}{{ message }}{% endautoescape %}
+            </div>
+          </div>
+        {% endwith %}
+      {% elif 'error' in tags or 'danger' in tags %}
+        {% with toast_class='text-bg-danger' toast_title='Error' %}
+          <div class="toast {{ toast_class }} border-0" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="4000">
+            <div class="toast-header bg-transparent border-0">
+              <strong class="me-auto text-white">{{ toast_title }}</strong>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body">
+              {% autoescape off %}{{ message }}{% endautoescape %}
+            </div>
+          </div>
+        {% endwith %}
+      {% elif 'warning' in tags %}
+        {% with toast_class='text-bg-warning' toast_title='Warning' %}
+          <div class="toast {{ toast_class }} border-0" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="4000">
+            <div class="toast-header bg-transparent border-0">
+              <strong class="me-auto text-dark">{{ toast_title }}</strong>
+              <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body">
+              {% autoescape off %}{{ message }}{% endautoescape %}
+            </div>
+          </div>
+        {% endwith %}
+      {% else %}
+        {% with toast_class='text-bg-info' toast_title='Notice' %}
+          <div class="toast {{ toast_class }} border-0" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="4000">
+            <div class="toast-header bg-transparent border-0">
+              <strong class="me-auto text-white">{{ toast_title }}</strong>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body">
+              {% autoescape off %}{{ message }}{% endautoescape %}
+            </div>
+          </div>
+        {% endwith %}
+      {% endif %}
+    {% endwith %}
   {% endfor %}
 </div>
 

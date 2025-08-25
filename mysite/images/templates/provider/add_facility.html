@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+<h3>Add facility</h3>
+<form method="post" enctype="multipart/form-data" class="mt-3">
+  {% csrf_token %}
+  {{ form.non_field_errors }}
+  <div class="row g-3">
+    <div class="col-md-6">{{ form.name.label_tag }}{{ form.name }}</div>
+    <div class="col-md-6">{{ form.sport_type.label_tag }}{{ form.sport_type }}</div>
+    <div class="col-md-6">{{ form.location.label_tag }}{{ form.location }}</div>
+    <div class="col-md-6">{{ form.base_price.label_tag }}{{ form.base_price }}</div>
+    <div class="col-md-6">{{ form.open_time.label_tag }}{{ form.open_time }}</div>
+    <div class="col-md-6">{{ form.close_time.label_tag }}{{ form.close_time }}</div>
+    <div class="col-md-6">{{ form.slot_length_minutes.label_tag }}{{ form.slot_length_minutes }}</div>
+    <div class="col-md-6">{{ form.image.label_tag }}{{ form.image }}</div>
+    <div class="col-12">{{ form.description.label_tag }}{{ form.description }}</div>
+  </div>
+  <button class="btn btn-success mt-3">Create</button>
+</form>
+{% endblock %}
