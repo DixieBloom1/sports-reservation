@@ -89,21 +89,49 @@ class ProviderRegisterForm(forms.Form):
     num_courts = forms.IntegerField(min_value=0, initial=1, widget=forms.NumberInput(attrs={"class":"form-control"}))
 
 class FacilityForm(forms.ModelForm):
+    sport_name = forms.CharField(
+        label="Sport type",
+        required=False,
+        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g. Padel"}),
+        help_text="Type any sport (free text).",
+    )
+
     class Meta:
         model = Facility
-        fields = ["name", "sport_type", "location", "description", "slot_length_minutes", "open_time", "close_time", "base_price", "image"]
+        fields = [
+            "name",
+            "location",
+            "description",
+            "slot_length_minutes",
+            "open_time",
+            "close_time",
+            "base_price",
+            "image",
+        ]
         widgets = {
-            "name": forms.TextInput(attrs={"class":"form-control"}),
-            "sport_type": forms.Select(attrs={"class":"form-select"}),  # dropdown stays
-            "location": forms.TextInput(attrs={"class":"form-control"}),
-            "description": forms.Textarea(attrs={"class":"form-control", "rows":3}),
-            "slot_length_minutes": forms.NumberInput(attrs={"class":"form-control"}),
-            "open_time": forms.TimeInput(attrs={"type":"time","class":"form-control"}),
-            "close_time": forms.TimeInput(attrs={"type":"time","class":"form-control"}),
-            "base_price": forms.NumberInput(attrs={"class":"form-control"}),
-            "image": forms.ClearableFileInput(attrs={"class":"form-control"}),
+            "name": forms.TextInput(attrs={"class": "form-control"}),
+            "location": forms.TextInput(attrs={"class": "form-control"}),
+            "description": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
+            "slot_length_minutes": forms.NumberInput(attrs={"class": "form-control"}),
+            "open_time": forms.TimeInput(attrs={"type": "time", "class": "form-control"}),
+            "close_time": forms.TimeInput(attrs={"type": "time", "class": "form-control"}),
+            "base_price": forms.NumberInput(attrs={"class": "form-control"}),
+            "image": forms.ClearableFileInput(attrs={"class": "form-control"}),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.order_fields([
+            "name",
+            "sport_name",
+            "location",
+            "description",
+            "slot_length_minutes",
+            "open_time",
+            "close_time",
+            "base_price",
+            "image",
+        ])
 class CourtForm(forms.ModelForm):
     sport_name = forms.CharField(
         max_length=50, label="Sport",

@@ -27,7 +27,16 @@
         {% if f.image %}<img src="{{ f.image.url }}" class="card-img-top" alt="{{ f.name }}">{% endif %}
         <div class="card-body">
           <h5 class="card-title">{{ f.name }}</h5>
-          <p class="card-text small text-muted">{{ f.location }} • {{ f.get_sport_type_display }}</p>
+           <p class="small text-muted">
+            {{ f.location }}
+            {% with c=f.courts.all|first %}
+              {% if c and c.sport %}
+                • {{ c.sport.name }}
+              {% elif f.get_sport_type_display %}
+                • {{ f.get_sport_type_display }}
+              {% endif %}
+            {% endwith %}
+          </p>
           <a class="btn btn-sm btn-primary" href="{% url 'images:facility_detail' f.id %}">View</a>
         </div>
       </div>

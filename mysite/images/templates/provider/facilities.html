@@ -10,7 +10,16 @@
       <div class="card h-100">
         <div class="card-body">
           <h5 class="card-title">{{ f.name }}</h5>
-          <p class="small text-muted">{{ f.location }} • {{ f.get_sport_type_display }}</p>
+          <p class="small text-muted">
+            {{ f.location }}
+            {% with c=f.courts.all|first %}
+              {% if c and c.sport %}
+                • {{ c.sport.name }}
+              {% elif f.get_sport_type_display %}
+                • {{ f.get_sport_type_display }}
+              {% endif %}
+            {% endwith %}
+          </p>
           <a class="btn btn-sm btn-outline-secondary" href="{% url 'images:provider_manage_courts' f.id %}">Manage courts</a>
         </div>
       </div>

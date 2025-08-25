@@ -9,8 +9,8 @@
     <tr>
       <th>User</th>
       <th>Facility</th>
-      <th>Offered sports (free text)</th>
-      <th>Assign sport (dropdown)</th>
+      <th>Offered sports</th>
+      <th>Assign sport</th>
       <th>Courts</th>
       <th>Location</th>
       <th>Submitted</th>
@@ -29,11 +29,6 @@
         <td style="min-width:240px">
           <form action="{% url 'facility_request_approve' r.id %}" method="post" class="d-flex gap-2">
             {% csrf_token %}
-            <select name="sport_type" class="form-select form-select-sm" required>
-              {% for key,label in sport_choices %}
-                <option value="{{ key }}">{{ label }}</option>
-              {% endfor %}
-            </select>
             <button class="btn btn-sm btn-success">Approve</button>
           </form>
         </td>

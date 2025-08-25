@@ -74,51 +74,6 @@ def my_bookings(request):
     bookings = Booking.objects.filter(user=request.user).order_by("-start_dt")
     return render(request, "bookings/my_bookings.html", {"bookings": bookings})
 
-
-@login_required
-def book_view(request, facility_id):
-    facility = get_object_or_404(Facility, id=facility_id)
-    has_courts = facility.courts.filter(is_active=True).exists()
-
-    if request.method == "POST":
-        form = BookingForm(request.POST, facility=facility)
-
-        # preset relations before validation
-        form.instance.user = request.user
-        form.instance.facility = facility
-        form.instance.price = facility.base_price
-
-        if not has_courts:
-            # Ensure court stays empty when the facility has no courts
-            form.instance.court = None
-
-        if form.is_valid():
-            booking = form.save(commit=False)
-            booking.save()
-            target = booking.court.name if booking.court_id else facility.name
-            send_mail(
-                "Booking confirmed",
-                f"You booked {target} on {booking.start_dt}.",
-                "noreply@example.com",
-                [request.user.email],
-                fail_silently=True,
-            )
-            messages.success(request, "Booking confirmed.")
-            return redirect("images:booking_confirmed", pk=booking.pk)
-        else:
-            messages.error(request, "Please correct the errors below.")
-    else:
-        start = request.GET.get("start")
-        end = request.GET.get("end")
-        court_id = request.GET.get("court")
-        initial = {}
-        if start and end: initial.update({"start_dt": start, "end_dt": end})
-        if has_courts and court_id: initial.update({"court": court_id})
-        form = BookingForm(initial=initial, facility=facility)
-
-    return render(request, "bookings/book.html", {"facility": facility, "form": form})
-
-
 @login_required
 def cancel_booking(request, pk):
     """Cancel a booking if ≥ 1 hour in advance."""
@@ -195,98 +150,6 @@ def booking_confirmed(request, pk):
     booking = get_object_or_404(Booking, pk=pk, user=request.user)
     return render(request, "bookings/confirmed.html", {"booking": booking})
 
-
-@login_required
-def modify_booking(request, pk):
-    """Modify an existing booking (≥ 1 hour before start)."""
-    b = get_object_or_404(Booking, pk=pk, user=request.user, status="confirmed")
-
-    if (b.start_dt - timezone.now()) < timedelta(hours=1):
-        messages.error(request, "Modifications must be at least 1 hour in advance.")
-        return redirect("images:my_bookings")
-
-    if request.method == "POST":
-        form = BookingForm(request.POST, instance=b)
-
-        # Preserve locked fields
-        form.instance.user = b.user
-        form.instance.facility = b.facility
-        form.instance.price = b.price
-
-        if form.is_valid():
-            try:
-                updated = form.save(commit=False)  # extra safety; clean already ran
-                updated.save()
-                messages.success(request, "Booking updated.")
-                return redirect("images:booking_confirmed", pk=b.pk)
-            except Exception as e:
-                messages.error(request, str(e))
-    else:
-        form = BookingForm(instance=b)
-
-    return render(request, "bookings/modify.html", {"booking": b, "form": form})
-
-@login_required
-def book_view(request, facility_id):
-    facility = get_object_or_404(Facility, id=facility_id)
-
-    if request.method == "POST":
-        form = BookingForm(request.POST, facility=facility)
-
-        # preset required relations before validation
-        form.instance.user = request.user
-        form.instance.facility = facility
-        form.instance.price = facility.base_price
-
-        if form.is_valid():
-            booking = form.save(commit=False)
-            booking.save()
-            send_mail(
-                "Booking confirmed",
-                f"You booked {booking.court.name} ({facility.name}) on {booking.start_dt}.",
-                "noreply@example.com",
-                [request.user.email],
-                fail_silently=True,
-            )
-            messages.success(request, "Booking confirmed.")
-            return redirect("images:booking_confirmed", pk=booking.pk)
-    else:
-        start = request.GET.get("start")
-        end = request.GET.get("end")
-        court_id = request.GET.get("court")
-        initial = {}
-        if start and end: initial.update({"start_dt": start, "end_dt": end})
-        if court_id: initial.update({"court": court_id})
-        form = BookingForm(initial=initial, facility=facility)
-
-    return render(request, "bookings/book.html", {"facility": facility, "form": form})
-
-@login_required
-def modify_booking(request, pk):
-    b = get_object_or_404(Booking, pk=pk, user=request.user, status="confirmed")
-    if (b.start_dt - timezone.now()) < timedelta(hours=1):
-        messages.error(request, "Modifications must be at least 1 hour in advance.")
-        return redirect("images:my_bookings")
-
-    if request.method == "POST":
-        form = BookingForm(request.POST, instance=b, facility=b.facility)
-        # lock relationships
-        form.instance.user = b.user
-        form.instance.facility = b.facility
-        form.instance.price = b.price
-
-        if form.is_valid():
-            updated = form.save(commit=False)
-            updated.save()
-            messages.success(request, "Booking updated.")
-            return redirect("images:booking_confirmed", pk=b.pk)
-        else:
-            messages.error(request, "Please correct the errors below.")
-    else:
-        form = BookingForm(instance=b, facility=b.facility)
-
-    return render(request, "bookings/modify.html", {"booking": b, "form": form})
-
 def facility_detail(request, pk):
     f = get_object_or_404(Facility, pk=pk)
     selected_date_str = request.GET.get("date")
@@ -332,55 +195,6 @@ def facility_detail(request, pk):
         "day_blackouts": day_blackouts,
     })
 
-
-@login_required
-def book_view(request, facility_id):
-    facility = get_object_or_404(Facility, id=facility_id)
-    has_courts = facility.courts.filter(is_active=True).exists()
-
-    if request.method == "POST":
-        form = BookingForm(request.POST, facility=facility)
-        form.instance.user = request.user
-        form.instance.facility = facility
-        form.instance.price = facility.base_price
-        if not has_courts:
-            form.instance.court = None
-
-        if form.is_valid():
-            booking = form.save(commit=False)
-            booking.save()
-            target = booking.court.name if booking.court_id else facility.name
-            send_mail(
-                "Booking confirmed",
-                f"You booked {target} on {booking.start_dt}.",
-                "noreply@example.com",
-                [request.user.email],
-                fail_silently=True,
-            )
-            messages.success(request, "Booking confirmed.")
-            return redirect("images:booking_confirmed", pk=booking.pk)
-        else:
-            messages.error(request, "Please correct the errors below.")
-    else:
-        start = request.GET.get("start")
-        end = request.GET.get("end")
-        court_id = request.GET.get("court")
-        initial = {}
-        if start and end: initial.update({"start_dt": start, "end_dt": end})
-        if has_courts and court_id: initial.update({"court": court_id})
-        form = BookingForm(initial=initial, facility=facility)
-
-    # NEW: notices for the booking page too (same modal)
-    upcoming_blackouts = Blackout.objects.filter(
-        facility=facility, end_dt__gte=timezone.now()
-    ).order_by("start_dt")[:20]
-
-    return render(request, "bookings/book.html", {
-        "facility": facility,
-        "form": form,
-        "upcoming_blackouts": upcoming_blackouts,  # for the modal
-    })
-
 def provider_register_view(request):
     if request.method == "POST":
         form = ProviderRegisterForm(request.POST)
@@ -415,53 +229,46 @@ def provider_register_view(request):
 @staff_member_required
 def facility_requests_list(request):
     """List all pending provider signup requests for admin review."""
-    pending = (FacilitySignupRequest.objects
-               .filter(status="pending")
-               .select_related("user")
-               .order_by("created_at"))
+    pending = (
+        FacilitySignupRequest.objects
+        .filter(status="pending")
+        .select_related("user")
+        .order_by("created_at")
+    )
     return render(
         request,
         "admin_facility/requests.html",
-        {"pending": pending, "sport_choices": Facility.SPORT_CHOICES},
+        {"pending": pending},
     )
+
 
 
 @staff_member_required
 @require_POST
 def facility_request_approve(request, pk):
-    """Approve a request: create facility (+courts), activate user, mark approved."""
     req = get_object_or_404(FacilitySignupRequest, pk=pk, status="pending")
-    sport_choice = request.POST.get("sport_type")
-    valid = {k for k, _ in Facility.SPORT_CHOICES}
-    if sport_choice not in valid:
-        messages.error(request, "Please choose a valid sport to assign.")
-        return redirect("facility_requests")
-
     with transaction.atomic():
         facility = Facility.objects.create(
             owner=req.user,
             name=req.facility_name,
-            sport_type=sport_choice,                 # map to your standard dropdown
             location=req.location,
             description=req.description,
-            slot_length_minutes=60,                  # defaults; provider can edit later
+            slot_length_minutes=60,
             open_time=req.open_time,
             close_time=req.close_time,
             base_price=0,
         )
-        # create initial courts (unnamed sport at court-level can be added later)
         for i in range(1, max(0, int(req.num_courts)) + 1):
             Court.objects.create(facility=facility, name=f"Court {i}")
 
-        user = req.user
-        user.is_active = True
-        user.save()
-
+        req.user.is_active = True
+        req.user.save()
         req.status = "approved"
         req.save()
 
-    messages.success(request, f"Approved '{user.username}'. Facility '{facility.name}' created.")
+    messages.success(request, f"Approved '{req.user.username}'. Facility '{facility.name}' created.")
     return redirect("facility_requests")
+
 
 @staff_member_required
 @require_POST
@@ -481,7 +288,9 @@ def provider_facilities(request):
     if request.user.profile.role != "provider":
         messages.error(request, "Only providers can access this page.")
         return redirect("images:facilities_list")
-    facilities = Facility.objects.filter(owner=request.user)
+    facilities = (Facility.objects
+                  .filter(owner=request.user)
+                  .prefetch_related("courts__sport"))
     return render(request, "provider/facilities.html", {"facilities": facilities})
 
 @login_required
@@ -489,16 +298,36 @@ def provider_add_facility(request):
     if request.user.profile.role != "provider":
         messages.error(request, "Only providers can access this page.")
         return redirect("images:facilities_list")
+
     if request.method == "POST":
         form = FacilityForm(request.POST, request.FILES)
         if form.is_valid():
             f = form.save(commit=False)
             f.owner = request.user
+            # DO NOT set f.sport_type here (we’re not using the choices field)
             f.save()
+
+            # Free-text sport -> ensure it exists in Sport table
+            sport_name = (form.cleaned_data.get("sport_name") or "").strip()
+            if sport_name:
+                sport = Sport.objects.filter(name__iexact=sport_name).first()
+                if not sport:
+                    sport = Sport.objects.create(name=sport_name)
+                if not f.courts.exists():
+                    Court.objects.create(
+                        facility=f,
+                        name="Court 1",
+                        sport=sport,
+                        is_active=True,
+                    )
+
             messages.success(request, "Facility created.")
             return redirect("images:provider_facilities")
+        else:
+            messages.error(request, "Please correct the errors below.")
     else:
         form = FacilityForm()
+
     return render(request, "provider/add_facility.html", {"form": form})
 
 @login_required
@@ -536,22 +365,24 @@ def provider_bookings(request):
 
 def _back_to_facility(facility):
     try:
-        return redirect("images:facility_detail", facility_id=facility.id)
+        return redirect("images:facility_detail", pk=facility.id)  # use pk as your view expects
     except Exception:
         return redirect("images:facilities_list")
 
 @require_http_methods(["GET", "POST"])
+@login_required
 def book_view(request, facility_id):
     facility = get_object_or_404(Facility, pk=facility_id)
 
+    # court (optional)
     court_id = request.GET.get("court") or request.POST.get("court")
     court = None
     if court_id:
         court = get_object_or_404(Court, pk=court_id, facility=facility)
 
+    # start/end required
     start_str = request.GET.get("start") if request.method == "GET" else request.POST.get("start")
     end_str   = request.GET.get("end")   if request.method == "GET" else request.POST.get("end")
-
     if not start_str or not end_str:
         messages.error(request, "Missing start or end time.")
         return _back_to_facility(facility)
@@ -578,6 +409,7 @@ def book_view(request, facility_id):
             {"facility": facility, "court": court, "start": start, "end": end},
         )
 
+    # POST: try to create
     clash_qs = Booking.objects.filter(
         facility=facility,
         start_dt__lt=end,
@@ -595,7 +427,34 @@ def book_view(request, facility_id):
         user=request.user,
         start_dt=start,
         end_dt=end,
-        # rely on model default for status (safer than guessing)
+        # status via model default
     )
     messages.success(request, "Booking created.")
     return redirect("images:my_bookings")
+
+
+@login_required
+def modify_booking(request, pk):
+    b = get_object_or_404(Booking, pk=pk, user=request.user, status="confirmed")
+    if (b.start_dt - timezone.now()) < timedelta(hours=1):
+        messages.error(request, "Modifications must be at least 1 hour in advance.")
+        return redirect("images:my_bookings")
+
+    if request.method == "POST":
+        form = BookingForm(request.POST, instance=b, facility=b.facility)
+        # lock relationships
+        form.instance.user = b.user
+        form.instance.facility = b.facility
+        form.instance.price = b.price
+
+        if form.is_valid():
+            updated = form.save(commit=False)
+            updated.save()
+            messages.success(request, "Booking updated.")
+            return redirect("images:booking_confirmed", pk=b.pk)
+        else:
+            messages.error(request, "Please correct the errors below.")
+    else:
+        form = BookingForm(instance=b, facility=b.facility)
+
+    return render(request, "bookings/modify.html", {"booking": b, "form": form})
