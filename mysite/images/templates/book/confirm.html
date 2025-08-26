@@ -15,10 +15,11 @@
 
     <form method="post">
         {% csrf_token %}
-        <input type="hidden" name="start" value="{{ start|date:'c' }}">
-        <input type="hidden" name="end" value="{{ end|date:'c' }}">
-        {% if court %}<input type="hidden" name="court" value="{{ court.id }}">{% endif %}
-        <button class="btn btn-primary">Confirm booking</button>
-        <a class="btn btn-outline-secondary ms-2" href="{% url 'images:facilities_list' %}">Cancel</a>
+        <input type="hidden" name="start" value="{{ start|date:'Y-m-d\\TH:i' }}">
+        <input type="hidden" name="end" value="{{ end|date:'Y-m-d\\TH:i' }}">
+        {% if court %}
+            <input type="hidden" name="court" value="{{ court.id }}">
+        {% endif %}
+        <button class="btn btn-success">Confirm booking</button>
     </form>
 {% endblock %}

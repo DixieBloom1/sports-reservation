@@ -1,25 +1,36 @@
 {% extends "base.html" %}
 {% block content %}
-    <h2>{{ facility.name }}</h2>
-    <p class="text-muted">{{ facility.location }}</p>
-    <p>{{ facility.description }}</p>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div><h2>{{ facility.name }}</h2>
+            <p class="text-muted">{{ facility.location }}</p>
+            <p>{{ facility.description }}</p>
+        </div>
+        <a href="{% url 'images:facilities_list' %}" class="btn btn-outline-secondary btn-sm">
+            ← Back to facilities
+        </a>
+    </div>
+
     {% include "partials/_notice_banner.html" %}
     <form class="row gy-2 gx-2 align-items-center mb-3">
         <div class="col-auto">
-            <input type="date" class="form-control" name="date" value="{{ selected_date|date:'Y-m-d' }}">
+            <label>
+                <input type="date" class="form-control" name="date" value="{{ selected_date|date:'Y-m-d' }}">
+            </label>
         </div>
 
         {% if has_courts %}
             <div class="col-auto">
-                <select class="form-select" name="court">
-                    <option value="">— Choose a court —</option>
-                    {% for c in courts %}
-                        <option value="{{ c.id }}"
-                                {% if selected_court and c.id == selected_court.id %}selected{% endif %}>
-                            {{ c.name }}
-                        </option>
-                    {% endfor %}
-                </select>
+                <label>
+                    <select class="form-select" name="court">
+                        <option value="">— Choose a court —</option>
+                        {% for c in courts %}
+                            <option value="{{ c.id }}"
+                                    {% if selected_court and c.id == selected_court.id %}selected{% endif %}>
+                                {{ c.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </label>
             </div>
         {% endif %}
 
@@ -39,6 +50,15 @@
                 {% if user.is_authenticated %}
                     <a class="btn btn-sm btn-success"
                        href="{% url 'images:book' facility.id %}?start={{ s|date:'Y-m-d\\TH:i' }}&end=
+
+
+
+
+
+
+
+
+
                                {{ e|date:'Y-m-d\\TH:i' }}{% if selected_court %}&court={{ selected_court.id }}{% endif %}">
                         Book
                     </a>

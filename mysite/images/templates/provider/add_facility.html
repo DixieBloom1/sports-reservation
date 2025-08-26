@@ -21,5 +21,8 @@
             <div class="col-12">{{ form.description.label_tag }}{{ form.description }}</div>
         </div>
         <button class="btn btn-success mt-3">Create</button>
+        <a href="{% url 'images:provider_facilities' %}" class="btn btn-danger mt-3 ms-2">
+            Abort
+        </a>
     </form>
 {% endblock %}

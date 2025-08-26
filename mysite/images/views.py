@@ -15,6 +15,7 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST, require_http_methods
+from validators import ValidationError
 
 from .models import (
     Facility,
@@ -398,11 +399,19 @@ def _back_to_facility(facility):
 def book_view(request, facility_id):
     facility = get_object_or_404(Facility, pk=facility_id)
 
-    court_id = request.GET.get("court") or request.POST.get("court")
+    court_raw = request.GET.get("court") or request.POST.get("court")
+    court_id = (court_raw or "").strip()
     court = get_object_or_404(Court, pk=court_id, facility=facility) if court_id else None
 
-    start_str = request.GET.get("start") if request.method == "GET" else request.POST.get("start")
-    end_str = request.GET.get("end") if request.method == "GET" else request.POST.get("end")
+    if not court and facility.courts.filter(is_active=True).exists():
+        messages.warning(request, "Choose a court to book.")
+        return _back_to_facility(facility)
+
+    start_raw = request.GET.get("start") if request.method == "GET" else request.POST.get("start")
+    end_raw = request.GET.get("end") if request.method == "GET" else request.POST.get("end")
+    start_str = (start_raw or "").strip()
+    end_str = (end_raw or "").strip()
+
     if not start_str or not end_str:
         messages.error(request, "Missing start or end time.")
         return _back_to_facility(facility)
@@ -410,10 +419,11 @@ def book_view(request, facility_id):
     try:
         start = datetime.fromisoformat(start_str)
         end = datetime.fromisoformat(end_str)
+        tz = timezone.get_current_timezone()
         if timezone.is_naive(start):
-            start = timezone.make_aware(start, timezone.get_current_timezone())
+            start = timezone.make_aware(start, tz)
         if timezone.is_naive(end):
-            end = timezone.make_aware(end, timezone.get_current_timezone())
+            end = timezone.make_aware(end, tz)
     except ValueError:
         messages.error(request, "Invalid date/time format.")
         return _back_to_facility(facility)
@@ -422,23 +432,39 @@ def book_view(request, facility_id):
         messages.error(request, "Start must be before end.")
         return _back_to_facility(facility)
 
+    length_min = int((end - start).total_seconds() // 60)
+    if length_min <= 0 or (length_min % facility.slot_length_minutes) != 0:
+        messages.error(request, "Invalid slot length for this facility.")
+        return _back_to_facility(facility)
+
+    local_start = timezone.localtime(start)
+    local_end = timezone.localtime(end)
+    if not (facility.open_time <= local_start.time() and local_end.time() <= facility.close_time):
+        messages.error(request, "Booking must be within opening hours.")
+        return _back_to_facility(facility)
+
+    if (start - timezone.now()) < timedelta(hours=1):
+        messages.error(request, "Bookings must be made at least 1 hour in advance.")
+        return _back_to_facility(facility)
+
     if Blackout.objects.filter(facility=facility, start_dt__lt=end, end_dt__gt=start).exists():
         messages.error(request, "That time is unavailable due to a posted notice/blackout.")
         return _back_to_facility(facility)
 
-    now = timezone.now()
-    upcoming_blackouts = (
-        Blackout.objects.filter(facility=facility, end_dt__gte=now).order_by("start_dt")[:20]
-    )
-    past_blackouts = (
-        Blackout.objects.filter(facility=facility, end_dt__lt=now).order_by("-start_dt")[:20]
-    )
-    selected_day = start.date()
-    day_blackouts = Blackout.objects.filter(
-        facility=facility, start_dt__date__lte=selected_day, end_dt__date__gte=selected_day
-    ).order_by("start_dt")
-
     if request.method == "GET":
+        now = timezone.now()
+        upcoming_blackouts = Blackout.objects.filter(
+            facility=facility, end_dt__gte=now
+        ).order_by("start_dt")[:20]
+        past_blackouts = Blackout.objects.filter(
+            facility=facility, end_dt__lt=now
+        ).order_by("-start_dt")[:20]
+        day_blackouts = Blackout.objects.filter(
+            facility=facility,
+            start_dt__date__lte=start.date(),
+            end_dt__date__gte=start.date(),
+        ).order_by("start_dt")
+
         return render(
             request,
             "book/confirm.html",
@@ -454,23 +480,35 @@ def book_view(request, facility_id):
         )
 
     clash_qs = Booking.objects.filter(
+        status="confirmed",
         facility=facility,
         start_dt__lt=end,
         end_dt__gt=start,
     )
     if court:
         clash_qs = clash_qs.filter(court=court)
+    else:
+        clash_qs = clash_qs.filter(court__isnull=True)
+
     if clash_qs.exists():
         messages.error(request, "That slot is no longer available.")
         return _back_to_facility(facility)
 
-    Booking.objects.create(
+    booking = Booking(
         facility=facility,
         court=court,
         user=request.user,
         start_dt=start,
         end_dt=end,
+        price=facility.base_price,
     )
+    try:
+        booking.full_clean()
+        booking.save()
+    except ValidationError as e:
+        messages.error(request, "; ".join(e.messages) if hasattr(e, "messages") else str(e))
+        return _back_to_facility(facility)
+
     messages.success(request, "Booking created.")
     return redirect("images:my_bookings")
 

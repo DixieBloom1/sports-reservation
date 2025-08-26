@@ -1,6 +1,15 @@
 {% extends "base.html" %}
 {% block content %}
-    <h3 class="mb-3">Edit facility: {{ facility.name }}</h3>
+
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="mb-3">Edit facility: {{ facility.name }}</h3>
+        </div>
+        <a href="{% url 'images:provider_facilities' %}" class="btn btn-outline-secondary btn-sm">
+            ← Back to my facilities
+        </a>
+    </div>
 
     <form method="post" enctype="multipart/form-data" class="card card-body">
         {% csrf_token %}

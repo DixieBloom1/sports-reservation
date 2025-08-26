@@ -4,6 +4,12 @@
         <h3>My facilities</h3>
         <a class="btn btn-primary" href="{% url 'images:provider_add_facility' %}">Add facility</a>
     </div>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div></div>
+        <a href="{% url 'images:facilities_list' %}" class="btn btn-outline-secondary btn-sm">
+            ← Back to facilities
+        </a>
+    </div>
 
     <div class="row mt-3">
         {% for f in facilities %}
