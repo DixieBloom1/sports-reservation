@@ -36,6 +36,9 @@
                                 {% endif %}
                             {% endwith %}
                         </p>
+                        {% if f.base_price %}
+                            <p class="small text-muted"> {{ f.base_price|floatformat:2 }}€/h</p>
+                        {% endif %}
                         <a class="btn btn-sm btn-primary" href="{% url 'images:facility_detail' f.id %}">View</a>
                     </div>
                 </div>

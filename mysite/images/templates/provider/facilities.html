@@ -21,6 +21,7 @@
                         <p class="small text-muted">
                             {{ f.location }}
                             {% if f.display_sport %} • {{ f.display_sport }}{% endif %}
+                            {% if f.base_price %} • {{ f.base_price|floatformat:2 }}€/h{% endif %}
                         </p>
 
                         <div class="d-flex gap-2">

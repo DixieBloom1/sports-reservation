@@ -1,6 +1,7 @@
 # images/views.py
 import csv
 from datetime import date, datetime, timedelta
+from decimal import Decimal
 
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
@@ -411,7 +412,6 @@ def book_view(request, facility_id):
     end_raw = request.GET.get("end") if request.method == "GET" else request.POST.get("end")
     start_str = (start_raw or "").strip()
     end_str = (end_raw or "").strip()
-
     if not start_str or not end_str:
         messages.error(request, "Missing start or end time.")
         return _back_to_facility(facility)
@@ -420,10 +420,8 @@ def book_view(request, facility_id):
         start = datetime.fromisoformat(start_str)
         end = datetime.fromisoformat(end_str)
         tz = timezone.get_current_timezone()
-        if timezone.is_naive(start):
-            start = timezone.make_aware(start, tz)
-        if timezone.is_naive(end):
-            end = timezone.make_aware(end, tz)
+        if timezone.is_naive(start): start = timezone.make_aware(start, tz)
+        if timezone.is_naive(end):   end = timezone.make_aware(end, tz)
     except ValueError:
         messages.error(request, "Invalid date/time format.")
         return _back_to_facility(facility)
@@ -442,7 +440,6 @@ def book_view(request, facility_id):
     if not (facility.open_time <= local_start.time() and local_end.time() <= facility.close_time):
         messages.error(request, "Booking must be within opening hours.")
         return _back_to_facility(facility)
-
     if (start - timezone.now()) < timedelta(hours=1):
         messages.error(request, "Bookings must be made at least 1 hour in advance.")
         return _back_to_facility(facility)
@@ -451,14 +448,13 @@ def book_view(request, facility_id):
         messages.error(request, "That time is unavailable due to a posted notice/blackout.")
         return _back_to_facility(facility)
 
+    total_hours = Decimal(length_min) / Decimal(60)
+    price = (facility.base_price * total_hours).quantize(Decimal("0.01"))
+
     if request.method == "GET":
         now = timezone.now()
-        upcoming_blackouts = Blackout.objects.filter(
-            facility=facility, end_dt__gte=now
-        ).order_by("start_dt")[:20]
-        past_blackouts = Blackout.objects.filter(
-            facility=facility, end_dt__lt=now
-        ).order_by("-start_dt")[:20]
+        upcoming_blackouts = Blackout.objects.filter(facility=facility, end_dt__gte=now).order_by("start_dt")[:20]
+        past_blackouts = Blackout.objects.filter(facility=facility, end_dt__lt=now).order_by("-start_dt")[:20]
         day_blackouts = Blackout.objects.filter(
             facility=facility,
             start_dt__date__lte=start.date(),
@@ -473,6 +469,7 @@ def book_view(request, facility_id):
                 "court": court,
                 "start": start,
                 "end": end,
+                "price": price,  # <-- show this on the confirm page
                 "upcoming_blackouts": upcoming_blackouts,
                 "past_blackouts": past_blackouts,
                 "day_blackouts": day_blackouts,
@@ -485,11 +482,7 @@ def book_view(request, facility_id):
         start_dt__lt=end,
         end_dt__gt=start,
     )
-    if court:
-        clash_qs = clash_qs.filter(court=court)
-    else:
-        clash_qs = clash_qs.filter(court__isnull=True)
-
+    clash_qs = clash_qs.filter(court=court) if court else clash_qs.filter(court__isnull=True)
     if clash_qs.exists():
         messages.error(request, "That slot is no longer available.")
         return _back_to_facility(facility)
@@ -500,7 +493,7 @@ def book_view(request, facility_id):
         user=request.user,
         start_dt=start,
         end_dt=end,
-        price=facility.base_price,
+        price=price,
     )
     try:
         booking.full_clean()
